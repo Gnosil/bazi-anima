@@ -16,14 +16,21 @@ vercel deploy --prod            # 得到 https://xxx.vercel.app
 `window.BAZI_API = 'https://xxx.vercel.app/api/ask'`
 （或在页面 URL 后加 `#api=https://xxx.vercel.app/api/ask`）
 
-## 或 Cloudflare Worker（国内可达性通常更好）
+## 或 Cloudflare Worker（国内可达性通常更好，推荐）
+
+`worker.bundle.mjs` 是预打包好的单文件（由 `node build-worker.js` 从 lib/core.js 生成），
+`wrangler.toml` 已配好。三条命令：
 
 ```bash
 cd server
-npx wrangler login
-npx wrangler secret put BAZI_API_KEY
-npx wrangler deploy worker.js --name bazi-ask
+npx wrangler login                      # 浏览器授权一次
+npx wrangler secret put BAZI_API_KEY    # 粘 key 回车
+npx wrangler deploy                     # 得到 https://bazi-ask.<你的子域>.workers.dev
 ```
+
+改了 lib/core.js 之后要先 `node build-worker.js` 再 deploy。
+
+注：claude.ai 的 Cloudflare MCP 连接器是只读的（list/get），没法代部署，所以这步得在本机跑。
 
 ## 本地冒烟
 

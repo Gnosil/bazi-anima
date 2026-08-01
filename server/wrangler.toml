@@ -1,0 +1,8 @@
+name = "bazi-ask"
+main = "worker.bundle.mjs"
+compatibility_date = "2026-07-01"
+
+[vars]
+BAZI_API_URL = "https://api.openai-next.com/v1/messages"
+BAZI_MODEL = "deepseek-v4-flash"
+# BAZI_API_KEY 走 secret：npx wrangler secret put BAZI_API_KEY
