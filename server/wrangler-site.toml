@@ -1,0 +1,11 @@
+# 前端静态站：https://bazi.<你的子域>.workers.dev
+# 部署：cd server && npx wrangler deploy --config wrangler-site.toml
+# 注意：先跑 node ../anima/prototype/build.js 确保 out/prototype.html 是最新的
+name = "bazi"
+main = "site-worker.js"
+compatibility_date = "2026-07-01"
+
+[[rules]]
+type = "Text"
+globs = ["**/*.html"]
+fallthrough = true

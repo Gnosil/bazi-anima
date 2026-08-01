@@ -16,6 +16,17 @@ vercel deploy --prod            # 得到 https://xxx.vercel.app
 `window.BAZI_API = 'https://xxx.vercel.app/api/ask'`
 （或在页面 URL 后加 `#api=https://xxx.vercel.app/api/ask`）
 
+## 前端静态站（可分享的网址）
+
+前端单文件也部署成一个 worker，得到 `https://bazi.<你的子域>.workers.dev`：
+
+```bash
+node anima/prototype/build.js                       # 先确保 out/prototype.html 最新
+cd server && npx wrangler deploy --config wrangler-site.toml
+```
+
+改了前端后重复这两条即可更新线上版。
+
 ## 或 Cloudflare Worker（国内可达性通常更好，推荐）
 
 `worker.bundle.mjs` 是预打包好的单文件（由 `node build-worker.js` 从 lib/core.js 生成），
