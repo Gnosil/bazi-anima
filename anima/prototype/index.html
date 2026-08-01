@@ -164,7 +164,10 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;heigh
     <div><label>出生时刻</label><input id="fTime" type="time" value="10:30"></div>
     <div><label>性别</label><div class="seg2" id="fGender"><span data-v="male" class="on">男</span><span data-v="female">女</span></div></div>
   </div>
-  <div class="fRow"><label>出生城市（用于真太阳时校正）</label><select id="fCity"></select></div>
+  <div class="fRow fGrid">
+    <div><label>出生省份</label><select id="fProv"></select></div>
+    <div><label>城市（真太阳时校正）</label><select id="fCity"></select></div>
+  </div>
   <button class="goBtn" id="fGo">起　盘</button>
   <div class="demoLink" id="fDemo">直接看演示盘（含完整命书）→</div>
   <div class="dim" style="margin-top:24px;text-align:center">仅供娱乐 · 生辰信息只在你的浏览器里计算，不上传</div>
@@ -326,9 +329,15 @@ window.BAZI_API = mApi ? decodeURIComponent(mApi[1])
 
 /* ═══ 输入页 ═══ */
 (function(){
-  const sel=$('#fCity');
-  sel.innerHTML=Object.keys(EngineCities).map(c=>`<option${c==='北京'?' selected':''}>${c}</option>`).join('')
-    +'<option value="">其他 / 不校正</option>';
+  const prov=$('#fProv'), sel=$('#fCity');
+  prov.innerHTML=Object.keys(EngineProvinces).map(pn=>`<option${pn==='北京'?' selected':''}>${pn}</option>`).join('')
+    +'<option value="">海外 / 其他</option>';
+  function fillCities(){
+    const pn=prov.value;
+    if(!pn){ sel.innerHTML='<option value="">不校正真太阳时</option>'; return; }
+    sel.innerHTML=Object.keys(EngineProvinces[pn]).map(c=>`<option>${c}</option>`).join('');
+  }
+  prov.onchange=fillCities; fillCities();
   let gender='male';
   $('#fGender').querySelectorAll('span').forEach(n=>n.onclick=()=>{
     gender=n.dataset.v;
@@ -366,7 +375,8 @@ window.BAZI_API = mApi ? decodeURIComponent(mApi[1])
     const d=$('#fDate').value, t=$('#fTime').value;
     if(!d||!t){alert('生日和时刻都要填');return}
     const [y,m,dd]=d.split('-').map(Number), [h,mi]=t.split(':').map(Number);
-    const chart=Engine.paipan({year:y,month:m,day:dd,hour:h,minute:mi,gender,city:sel.value||undefined});
+    const chart=Engine.paipan({year:y,month:m,day:dd,hour:h,minute:mi,gender,
+      city:sel.value||undefined,province:prov.value||undefined});
     const isDemo=chart.bazi===DEMO_CHART.bazi&&gender==='male';
     boot(chart,isDemo?DEMO_FINAL:stubFinal(chart));
   };

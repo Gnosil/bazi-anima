@@ -8,7 +8,7 @@ let hero32=''; const h32=path.join(D,'../assets/hero32.js');
 if(fs.existsSync(h32)) hero32=fs.readFileSync(h32,'utf8');
 
 // —— engine 浏览器 bundle：迷你 require shim ——
-const ENG=['tables','config','solartime','shensha','relations','palaces','paipan'];
+const ENG=['tables','config','geo','solartime','shensha','relations','palaces','paipan'];
 let engine='(function(){var M={},C={};function req(n){n=n.replace(/^\\.\\//,"").replace(/\\.js$/,"");'
  +'if(C[n])return C[n].exports;var m=C[n]={exports:{}};M[n](m,m.exports,req);return m.exports}\n';
 engine+='M["lunar-javascript"]=function(module,exports,require){'+fs.readFileSync(path.join(D,'../../node_modules/lunar-javascript/lunar.js'),'utf8')+'};\n';
@@ -16,7 +16,7 @@ for(const n of ENG){
   let code=fs.readFileSync(path.join(D,'../../engine/'+n+'.js'),'utf8');
   engine+='M['+JSON.stringify(n)+']=function(module,exports,require){'+code+'};\n';
 }
-engine+='window.Engine=req("paipan");window.EngineCities=req("solartime").CITIES;})();';
+engine+='window.Engine=req("paipan");window.EngineCities=req("solartime").CITIES;window.EngineProvinces=req("solartime").PROVINCES;})();';
 const reading=JSON.parse(R(path.join(caseDir,'reading.json')));
 let html=R('index.html')
   .replace('__FONT_URL__',`data:font/woff2;base64,${font}`)

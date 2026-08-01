@@ -155,7 +155,7 @@ function paipan(input, cfgOverride = {}) {
       gender: input.gender,
       calendar: input.calendar || 'solar',
       clockTime: `${clock.y}-${String(clock.m).padStart(2,'0')}-${String(clock.d).padStart(2,'0')} ${String(clock.h).padStart(2,'0')}:${String(clock.mi).padStart(2,'0')}`,
-      birthplace: input.city || (lon != null ? `经度 ${lon}` : null),
+      birthplace: (input.province ? input.province + ' · ' : '') + (input.city || (lon != null ? `经度 ${lon}` : '')) || null,
       longitude: lon ?? null,
     },
     time: {
