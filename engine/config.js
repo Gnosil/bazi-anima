@@ -34,6 +34,13 @@ module.exports = {
   // 神煞：留空 = 用 tables.SHENSHA_DEFAULT
   shenSha: null,
 
+  // 宫位（V2/V3）
+  palaces: {
+    // 年龄段跟起运岁数挂钩 ✅（不用 16/32/48 等分）
+    // 每柱管几步大运：2 = 每柱 20 年（默认），3 = 每柱 30 年
+    stepsPerPillar: 2,
+  },
+
   // 是否输出关系（刑冲合害会）
   relations: true,
 };

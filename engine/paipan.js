@@ -11,6 +11,7 @@ const DEFAULT_CONFIG = require('./config');
 const { toTrueSolar, CITIES } = require('./solartime');
 const { calcShenSha } = require('./shensha');
 const { calcRelations, calcWuXing, calcWangShuai } = require('./relations');
+const { calcPalaces } = require('./palaces');
 
 const SCHEMA_VERSION = '0.1.0';
 const PILLARS = ['year', 'month', 'day', 'hour'];
@@ -139,6 +140,10 @@ function paipan(input, cfgOverride = {}) {
     return item;
   });
 
+  // —— 宫位（V2/V3 的输入）——
+  const qiYunAge = (yun.getStartYear() || 0) + (yun.getStartMonth() || 0) / 12 + (yun.getStartDay() || 0) / 365;
+  const palaces = calcPalaces(pillars, input.gender, qiYunAge, cfg.palaces || {});
+
   return {
     meta: {
       schemaVersion: SCHEMA_VERSION,
@@ -173,6 +178,7 @@ function paipan(input, cfgOverride = {}) {
     shiShenCount,
     relations,
     shenSha,
+    palaces,
     qiYun: { text: yun.getStartYear() + '年' + yun.getStartMonth() + '月' + yun.getStartDay() + '日后起运',
              startSolar: yun.getStartSolar().toYmd(), forward: yun.isForward() },
     daYun,
