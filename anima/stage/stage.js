@@ -53,6 +53,28 @@ function blit(ctx, rows, pal, x, y, s, flip, z) {
   }
 }
 const px = (ctx, x, y, s, c) => { ctx.fillStyle = c; ctx.fillRect(x * s, y * s, s, s); };
+function blit32(ctx, grid, palette, x, y, s, flip) {
+  const n = grid.length;
+  for (let ry = 0; ry < n; ry++) {
+    const row = grid[ry];
+    for (let rx = 0; rx < n; rx++) {
+      const v = row[flip ? n - 1 - rx : rx];
+      if (v < 0) continue;
+      ctx.fillStyle = palette[v];
+      ctx.fillRect((x + rx) * s, (y + ry) * s, s, s);
+    }
+  }
+}
+const H32 = (typeof HERO32 !== 'undefined' && HERO32) ? HERO32
+          : (typeof module === 'object' ? (function(){ try { return require('../assets/hero32.js'); } catch(e){ return null; } })() : null);
+function drawHero(ctx, frameName, S, x, y) {
+  if (H32 && H32.frames[frameName]) { blit32(ctx, H32.frames[frameName], H32.palette, x, y, S.s); return; }
+  const fb = { idle0: CH.idle0, idle1: CH.idle1, walk0: CH.walk0, walk1: CH.walk1,
+               curl: CH.curl, shrug: CH.shrug, cheer: CH.cheer }[frameName] || CH.idle0;
+  blit(ctx, fb, S.pal, x, y, S.s, false, 2);
+}
+const heroIdleF = t => (t % 8 < 4 ? 'idle0' : 'idle1');
+const heroStepF = t => (t % 4 < 2 ? 'walk0' : 'walk1');
 function rect(ctx, x, y, w, h, s, c) { ctx.fillStyle = c; ctx.fillRect(x * s, y * s, w * s, h * s); }
 
 /* ═══ 3. 调色 ═══ */
@@ -104,7 +126,7 @@ const SCENES = {
         }
         i++;
       }
-      blit(ctx, bob(t), S.pal, CX2, FEET2, S.s, false, Z);
+      drawHero(ctx, heroIdleF(t), S, CX2, FEET2);
       if (t % 16 < 10) blit(ctx, PROP.flame, FIRE, CX2 + 34, GROUND + 6, S.s);   // 自带的那点火
     },
   },
@@ -116,7 +138,7 @@ const SCENES = {
       drawGround(ctx, S.s);
       const bp = { o:'#6B4415', b:'#D98E36', h:'#F5C97A' };
       for (let y = 0; y < 4; y++) for (const bx of [14, 98]) blit(ctx, PROP.brick, bp, bx, 32 - y * 8, S.s);
-      blit(ctx, bob(t), S.pal, CX2, FEET2, S.s, false, Z);
+      drawHero(ctx, heroIdleF(t), S, CX2, FEET2);
       if (t % 24 < 12) for (let k = 0; k < 4; k++) px(ctx, 4 + k * 2, 6 + k * 2, S.s, '#443A6B'); // 进不来的光
     },
   },
@@ -128,7 +150,7 @@ const SCENES = {
       drawGround(ctx, S.s);
       blit(ctx, CH.idle0, GHOST, 6, FEET, S.s);
       blit(ctx, CH.idle0, GHOST, 98, FEET, S.s, true);
-      blit(ctx, bob(t), S.pal, CX2, FEET2, S.s, false, Z);
+      drawHero(ctx, heroIdleF(t), S, CX2, FEET2);
       const k = (t % 32) / 32;
       blit(ctx, PROP.coin, COIN, Math.round(CX2 - 2 - k * 30), Math.round(GROUND + 2 - k * 8), S.s);
     },
@@ -146,7 +168,7 @@ const SCENES = {
       }
       rect(ctx, 49, 8, 1, 10, S.s, up.o);
       blit(ctx, CH.idle0, GHOST, 60, FEET, S.s, true);              // 伴侣
-      blit(ctx, bob(t), S.pal, 22, FEET2, S.s, false, Z);
+      drawHero(ctx, heroIdleF(t), S, 22, FEET2);
       const k = Math.sin(t * 0.09);
       blit(ctx, CH.idle0, { ...GHOST, b:'#4A55A8', h:'#4A55A8' },   // 第三个影子（劫财）
            Math.round(96 - k * 10), FEET, S.s, true);
@@ -168,7 +190,7 @@ const SCENES = {
       rect(ctx, 96, GROUND + 6, 18, 2, S.s, bp.b);
       rect(ctx, 96, GROUND + 6, 2, 8, S.s, bp.o);
       rect(ctx, 112, GROUND + 6, 2, 8, S.s, bp.o);
-      blit(ctx, bob(t), S.pal, 12, FEET2, S.s, false, Z);
+      drawHero(ctx, heroIdleF(t), S, 12, FEET2);
     },
   },
 
@@ -184,7 +206,7 @@ const SCENES = {
         const on = (i === 4 && t % 8 < 6) || (i === 3 && t % 40 < 3);
         blit(ctx, PROP.flame, on ? FIRE : off, x, GROUND - 6, S.s);
       }
-      blit(ctx, step(t), S.pal, Math.round(2 + ((t * 1.4) % 88)), FEET2, S.s, false, Z);
+      drawHero(ctx, heroStepF(t), S, Math.round(2 + ((t * 1.4) % 88)), FEET2);
     },
   },
 
@@ -197,7 +219,7 @@ const SCENES = {
         const x = (i * 11 + 3) % W, y = (t * 3 + i * 9) % (GROUND + 14);
         px(ctx, x, y, S.s, '#3D9BE8'); px(ctx, x, y + 1, S.s, '#12386B');
       }
-      blit(ctx, CH.curl, S.pal, CX2, FEET2, S.s, false, Z);
+      drawHero(ctx, 'curl', S, CX2, FEET2);
       if (t % 12 < 7) blit(ctx, PROP.flame, FIRE, W / 2 - 4, GROUND + 6, S.s);
     },
   },
@@ -213,7 +235,7 @@ const SCENES = {
         rect(ctx, 4 + i * 28, GROUND + 17, 26, 2, S.s, c.dark);
       });
       const wx = 4 + ((t * 1.1) % 108);
-      blit(ctx, step(t), S.pal, Math.round(wx), FEET2, S.s, false, Z);
+      drawHero(ctx, heroStepF(t), S, Math.round(wx), FEET2);
       const c = DS.wuXing[S.chart.pillars[P[Math.min(3, Math.floor((wx - 4) / 28))]].ganWuXing];
       px(ctx, Math.round(wx) + 7, GROUND - 6, S.s, c.light);
       px(ctx, Math.round(wx) + 8, GROUND - 6, S.s, c.light);
@@ -231,7 +253,7 @@ const SCENES = {
         if (y < 12) continue;
         px(ctx, W / 2 - 6 + i * 3, Math.round(y), S.s, '#FF8FD1');
       }
-      blit(ctx, bob(t), S.pal, CX2, FEET2, S.s, false, Z);
+      drawHero(ctx, heroIdleF(t), S, CX2, FEET2);
     },
   },
 
@@ -240,7 +262,7 @@ const SCENES = {
     label: '这个盘上看不出来',
     draw(ctx, t, S) {
       drawGround(ctx, S.s);
-      blit(ctx, CH.shrug, S.pal, CX2, FEET2, S.s, false, Z);
+      drawHero(ctx, 'shrug', S, CX2, FEET2);
       if (t % 16 < 11) blit(ctx, PROP.qmark, { o:'#443A6B', b:'#8579B0', h:'#C6BCE6' }, CX2 + 34, GROUND - 6, S.s);
     },
   },
@@ -250,7 +272,7 @@ const SCENES = {
     label: '这个不算',
     draw(ctx, t, S) {
       drawGround(ctx, S.s);
-      blit(ctx, CH.shrug, S.pal, CX2 + (t % 12 < 6 ? -1 : 1), FEET2, S.s, false, Z);
+      drawHero(ctx, 'shrug', S, CX2 + (t % 12 < 6 ? -1 : 1), FEET2);
       const cx = W / 2 + 22, cy = GROUND + 4, r = 7;
       for (let a = 0; a < 6.283; a += 0.13)
         px(ctx, Math.round(cx + Math.cos(a) * r), Math.round(cy + Math.sin(a) * r), S.s, '#FF5C6E');
@@ -314,12 +336,12 @@ function drawActor(ctx, t, S, a) {
   switch (a.sprite) {
     case 'hero': {
       let x = num(a.x, W / 2 - 16);
-      let frames = bob(t);
-      if (a.behavior === 'walk') { const span = Math.max(8, rng[1] - rng[0] - 32); x = rng[0] + ((t * (a.speed || 1) * 1.2) % span); frames = step(t); }
-      else if (a.behavior === 'curl') frames = CH.curl;
-      else if (a.behavior === 'shrug') frames = CH.shrug;
-      else if (a.behavior === 'cheer') frames = (t % 8 < 4 ? CH.cheer : CH.idle0);
-      blit(ctx, frames, S.pal, Math.round(x), FEET2, s, false, Z);
+      let fr = heroIdleF(t);
+      if (a.behavior === 'walk') { const span = Math.max(8, rng[1] - rng[0] - 32); x = rng[0] + ((t * (a.speed || 1) * 1.2) % span); fr = heroStepF(t); }
+      else if (a.behavior === 'curl') fr = 'curl';
+      else if (a.behavior === 'shrug') fr = 'shrug';
+      else if (a.behavior === 'cheer') fr = (t % 8 < 4 ? 'cheer' : 'idle0');
+      drawHero(ctx, fr, S, Math.round(x), FEET2);
       break;
     }
     case 'ghost': case 'rival': {

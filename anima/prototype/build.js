@@ -4,10 +4,12 @@ const fs=require('fs'), path=require('path'), D=__dirname;
 const R=p=>fs.readFileSync(path.join(D,p),'utf8');
 const caseDir=process.argv[2]||'../../cases/demo-1998';
 const font=fs.readFileSync(path.join(D,'../assets/zpix-subset.woff2')).toString('base64');
+let hero32=''; const h32=path.join(D,'../assets/hero32.js');
+if(fs.existsSync(h32)) hero32=fs.readFileSync(h32,'utf8');
 const reading=JSON.parse(R(path.join(caseDir,'reading.json')));
 let html=R('index.html')
   .replace('__FONT_URL__',`data:font/woff2;base64,${font}`)
-  .replace('__TOKENS__',R('../design-system/tokens.js'))
+  .replace('__TOKENS__',R('../design-system/tokens.js')+'\n'+hero32)
   .replace('__STAGE__',R('../stage/stage.js'))
   .replace('__DIRECTOR__',R('../stage/director.js'))
   .replace('__CHART__',R(path.join(caseDir,'chart.json')))
