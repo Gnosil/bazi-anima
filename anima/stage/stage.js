@@ -76,22 +76,31 @@ function loadCatSprites(definition) {
   }
   return sprites;
 }
-function drawCat(ctx, frameName, S, x, y) {
+function drawCat(ctx, t, S, behavior, x, y, flip = false) {
   const sprites = S.catSprites;
   if (!sprites) return false;
-  const name = frameName === 'walk0' || frameName === 'walk1' ? 'hop'
-    : frameName === 'curl' ? 'cast'
-    : frameName === 'shrug' || frameName === 'cheer' ? 'beckon' : 'idleSheet';
-  const image = sprites[name];
+  let image = sprites.idleSheet;
+  let sourceX = Math.floor(t / 2) % 4 * CAT_FRAME.width;
+  if (behavior === 'walk') { image = sprites.hop; sourceX = 0; }
+  if (behavior === 'curl') { image = sprites.cast; sourceX = 0; }
+  if (behavior === 'shrug' || behavior === 'cheer') { image = sprites.beckon; sourceX = 0; }
   if (!image || !image.complete || !image.naturalWidth) return false;
-  const sx = name === 'idleSheet' ? (frameName === 'idle1' ? CAT_FRAME.width * 2 : 0) : 0;
-  const bob = name === 'idleSheet' && frameName === 'idle1' ? -1 : 0;
-  ctx.drawImage(image, sx, 0, CAT_FRAME.width, CAT_FRAME.height,
-    (x - 13) * S.s, (y - 29 + bob) * S.s, 58 * S.s, 29 * S.s);
+  const bobY = behavior === 'idle' && t % 8 >= 4 ? -1 : 0;
+  const dx = Math.round(x - 13) * S.s;
+  const dy = Math.round(y + bobY) * S.s;
+  const dw = 58 * S.s, dh = 29 * S.s;
+  ctx.save();
+  if (flip) {
+    ctx.translate(dx + dw, dy); ctx.scale(-1, 1);
+    ctx.drawImage(image, sourceX, 0, CAT_FRAME.width, CAT_FRAME.height, 0, 0, dw, dh);
+  } else ctx.drawImage(image, sourceX, 0, CAT_FRAME.width, CAT_FRAME.height, dx, dy, dw, dh);
+  ctx.restore();
   return true;
 }
 function drawHero(ctx, frameName, S, x, y) {
-  if (drawCat(ctx, frameName, S, x, y)) return;
+  const behavior = frameName === 'walk0' || frameName === 'walk1' ? 'walk'
+    : ['curl', 'shrug', 'cheer'].includes(frameName) ? frameName : 'idle';
+  if (drawCat(ctx, S.t || 0, S, behavior, x, y)) return;
   if (H32 && H32.frames[frameName]) {
     const n = H32.size || H32.frames[frameName].length;
     if (n > 48) {
@@ -502,6 +511,7 @@ function mount(canvas, chart, opts = {}) {
   function frame() {
     ctx.fillStyle = '#0E0B14';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
+    S.t = t;
     if (script) { drawScript(ctx, t % (script.duration * fps), S, script); }
     else (SCENES[scene] || SCENES.unknown).draw(ctx, t, S);
     t++;
