@@ -64,6 +64,7 @@ const SYSTEM = [
   '断语必须来自用户传的 chart 数据，不许编。',
   '',
   '【红线】寿命/生死、疾病诊断、灾祸预言、婚变结局、投资指令 → 输出示例 2 那种拒答脚本。',
+  '红线拒答时：caption 只能是温和的拒绝+引导换话题，禁止包含任何盘面解读（不许提宫位/神煞/五行），actors 只能是 hero.shrug + ban。',
 ].join('\n');
 
 const EX_MONEY = '{"caption":"币一直在掉，前半程接不住；右边那个筐，44 岁以后才出现。","duration":15,"backdrop":"ground","actors":[{"sprite":"coin","behavior":"fall","x":8,"count":6},{"sprite":"basket","x":96},{"sprite":"hero","behavior":"idle","x":16}]}';
