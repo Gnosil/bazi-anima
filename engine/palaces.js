@@ -15,7 +15,7 @@ const T = require('./tables');
  */
 const PILLAR_PALACE = {
   year:  { palace: '父母宫', also: ['祖辈', '出身背景'], note: '✅ Dan 确认父母在年柱' },
-  month: { palace: '兄弟宫', also: ['家庭环境', '青年际遇'], note: '❓ 待确认：父母移到年柱后，月柱主什么' },
+  month: { palace: '兄弟宫', also: ['家庭环境', '青年际遇'], note: '✅ Dan 确认' },
   day:   { palace: '配偶宫', also: ['自身'], note: '日干=自己，日支=配偶' },
   hour:  { palace: '子女宫', also: ['晚年', '事业终局'], note: '' },
 };
@@ -41,7 +41,7 @@ const SHISHEN_KIN = {
  * @param {number} qiYunAge 起运岁数
  * @param {object} cfg { stepsPerPillar }
  *
- * 默认 stepsPerPillar = 2（每柱管 2 步大运 = 20 年）：
+ * ✅ Dan 确认：stepsPerPillar = 2（每柱管 2 步大运 = 20 年）
  *   年柱: 0 → 起运                （起运前，完全受父母影响 —— 跟「父母宫在年柱」自洽）
  *   月柱: 起运 → 起运+20
  *   日柱: 起运+20 → 起运+40
