@@ -13,10 +13,37 @@ description: 按 Dan 的方法论解读八字命盘。输入 engine/ 产出的 c
 |---|---|---|---|
 | T1 | **排盘** | Bash: `node engine/cli.js --date=… --time=… --gender=… --city=…` | 必须实跑引擎拿 chart.json。**禁止手算任何干支**。没有出生地经度时必须在输出里带上引擎给的 warning |
 | T2 | **排盘交叉校验** | 会话中存在万年历/排盘类 MCP 工具时必须调用 | 四柱逐柱比对；不一致 → 停止，报告差异，不许继续断 |
-| T3 | **知识检索（RAG）** | Read `references/glossary.md`、`references/boundaries.md`；配置了向量库/记忆类 MCP 时，用「日主X 月令Y 强弱Z」为 query 检索 | 断语落笔前必须完成。boundaries 是红线，glossary 是翻译表 |
-| T4 | **相似案例** | Glob + Read `cases/*/`，找同日主五行或同强弱方向的 2 个已有案例 | 作为 few-shot 参照；`cases/` 为空时记录「无案例可参照」 |
-| T5 | **写盘入库** | Write `cases/<id>/chart.json` + `reading.json` + `final.json` | 每张算过的盘必须落盘，作为回归测试与未来 RAG 语料 |
+| T3 | **知识检索（RAG）** | Read `references/glossary.md`、`references/boundaries.md` + **Mem0 检索**（见下） | 断语落笔前必须完成。boundaries 是红线，glossary 是翻译表 |
+| T4 | **相似案例** | **Mem0 优先**，失败回退 Glob + Read `cases/*/` | 作为 few-shot 参照；两边都空时记录「无案例可参照」 |
+| T5 | **写盘入库** | Write `cases/<id>/` **且写入 Mem0**（见下） | 本地 `cases/` 是 ground truth，Mem0 是检索索引，两边都要写 |
 | T6 | **动画脚本** | 按 `anima/stage/DSL.md` 生成 | 见下——这是输出的一部分，不是可选项 |
+
+### Mem0 调用约定（案例库 RAG，已实测跑通）
+
+作用域：**一律 `user_id: "bazi-cases"`**。
+⚠️ 已踩过的坑：只传 `agent_id` 存进去的记忆检索不到（Mem0 检索时自动注入默认 user_id 做 AND）。
+
+**T4 检索**（断盘前）——按问题域各查一次，`top_k: 3`：
+```
+mcp__Mem0__search_memories {
+  query: "日主<X> 生<月支>月 <问题域>怎么断",     // 例："阴木日主生冬天水月 配偶宫怎么断"
+  filters: { AND: [{ user_id: "bazi-cases" }] },
+  top_k: 3
+}
+```
+实测：换了说法的 query（不出现「乙」「亥」字样）也能命中对应断法。
+
+**T5 写入**（断盘后）——每张盘按主题拆 5–6 条，不要整盘塞一条：
+```
+mcp__Mem0__add_memory {
+  text: "案例 <id> <主题>断法：<结构要点+断语+方法论要点>",
+  user_id: "bazi-cases",
+  infer: false,                                  // 保持原文，不让 Mem0 的 LLM 改写
+  metadata: { case: "<id>", type: "chart|reasoning", topic: "配偶宫|财|用神|事业健康" }
+}
+```
+拆条原则：一条 = 一个可独立检索的断法单元（盘面结构 / 用神 / 配偶宫 / 财 / 事业健康）。
+text 开头必须带「案例 <id>」和日主+月令的自然语言描述，保证语义检索能命中。
 
 ### T6 动画脚本的硬性要求
 
