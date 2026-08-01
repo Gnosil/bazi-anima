@@ -102,6 +102,34 @@ h1{font-size:24px;color:#F2EDFF;line-height:1;letter-spacing:3px}
 .one{border:2px solid #F5C542;background:#1C1526;padding:16px;text-align:center;
   font-size:24px;line-height:1.6;color:#F2EDFF}
 
+/* 术语（issue #1） */
+.term{border-bottom:2px dotted #6B5CA5;cursor:help}
+.term:hover{color:#F2EDFF;border-bottom-color:#F5C542}
+#termPop{display:none;position:absolute;z-index:99;max-width:300px;background:#241C3D;
+  border:2px solid #F5C542;padding:10px 12px;color:#C6BCE6;line-height:1.8;
+  font-family:'Zpix','MS Gothic',monospace;font-size:12px}
+#termPop b{color:#F5C542}
+
+/* 可读性（issue #2）：A+ 放大档 + 层级微调 */
+body.big{zoom:1.5}
+.pil .hd,.pil .ft{padding:3px 1px}
+.chip{padding:2px 6px;line-height:1.9}
+.foot{color:#6F639B}
+.hints{gap:6px}
+.hint{padding:6px 10px}
+.dlgNav span{padding:8px 12px}
+input[type=range]::-webkit-slider-thumb{width:18px;height:22px}
+
+/* 可点性区分（issue #3） */
+button,.hint,.node,.modeBtn,.dlgNav span,.term{cursor:pointer}
+.hint:active,.modeBtn:active,.dlgNav span:active{background:#33285A;color:#F5C542}
+.node:hover .dot{border-color:#F5C542!important}
+button:focus-visible,input:focus-visible,select:focus-visible,.hint:focus-visible,
+.dlgNav span:focus-visible,.modeBtn:focus-visible{outline:3px solid #F5C542;outline-offset:2px}
+.one{border-color:#6B5CA5}                     /* 静态强调卡不再用金边（金=可点） */
+.askLab{color:#F5C542;letter-spacing:2px;margin-top:14px}
+.dlgBox:hover{background:#1C1630}
+
 /* 生成 */
 .genWrap{border:2px solid #F5C542;background:#1C1526;padding:14px;margin-top:14px;text-align:center}
 .genWrap .goBtn{margin-top:0}
@@ -126,6 +154,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;heigh
 </style>
 </head>
 <body>
+<div id="termPop"></div>
 <!-- 视图一：输入 -->
 <div id="viewInput">
   <h1>BAZI—ANIMA</h1>
@@ -168,6 +197,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;heigh
     <div class="caption" id="caption"><span class="via" id="capVia"></span><span id="capText"></span></div>
 
     <!-- ③ 输入框 -->
+    <div class="askLab">问命理师 —— 回答是一段动画</div>
     <div class="ask">
       <input id="q" placeholder="想问什么？" autocomplete="off">
       <button id="go">问</button>
@@ -178,7 +208,10 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;heigh
   <!-- ④ 推断 · 对话模式（默认）：一段一段讲，点一下继续 -->
   <div class="modeBar">
     <span class="lab" style="margin:0">解读</span>
-    <button class="modeBtn" id="modeBtn">整页阅读</button>
+    <span>
+      <button class="modeBtn" id="bigBtn" title="放大字号">A⁺</button>
+      <button class="modeBtn" id="modeBtn">整页阅读</button>
+    </span>
   </div>
   <div class="dlgBox" id="dlgBox">
     <div class="dlgTitle" id="dlgTitle"></div>
@@ -215,6 +248,72 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;heigh
 <script>__TOKENS__</script>
 <script>__STAGE__</script>
 <script>__DIRECTOR__</script>
+<script>
+/* issue #1: 术语词典 —— 首次出现的术语加虚线，点一下出白话解释 */
+const GLOSS={
+ '八字':'你出生的年、月、日、时各用两个字表示，一共八个字。这套分析全部从这八个字推出来。',
+ '四柱':'年、月、日、时四组干支，每组一柱。不同柱管人生不同侧面。',
+ '天干':'每柱上面那个字（甲乙丙丁…）。表示外在、显性的力量。',
+ '地支':'每柱下面那个字（子丑寅卯…）。表示内在、隐性的力量。',
+ '日主':'你出生那天的天干，代表「你自己」。整张盘都以它为中心来看。',
+ '日柱':'出生那天的干支。上面是你自己，下面是配偶宫。',
+ '五行':'金木水火土五种能量。盘里各占多少，决定你天生的配置。',
+ '身强':'帮你的能量多。不等于命好，是「配置偏向自足」。',
+ '身弱':'帮你的能量少。不等于命差，是「配置偏向借力」。',
+ '用神':'这张盘最需要补的那种能量。后面的建议多半围着它转。',
+ '藏干':'每个地支里还藏着一到三个天干，像口袋里的暗牌。细看盘就是把它们翻出来。',
+ '本气':'地支里藏的几个天干中力量最大的那个。',
+ '纳音':'每柱干支组合出的一个意象（比如大海水、山头火），描述这根柱子的质地。',
+ '十神':'盘里其他字和你（日主）的十种关系，各管一类人事（钱、权、表达、庇护…）。',
+ '正官':'十神之一：规矩和名分。管上司、体制，女命也代表丈夫。',
+ '七杀':'十神之一：强压力和魄力。管严厉的上级、挑战，是把双刃剑。',
+ '正印':'十神之一：庇护和吸收。管母亲、老师、学习，多了容易被照顾得不想动。',
+ '偏印':'十神之一：偏门的庇护。管非主流的学问和长辈，带点疏离。',
+ '正财':'十神之一：稳定的钱。男命也代表妻子。',
+ '偏财':'十神之一：流动的钱和机会。也代表父亲。',
+ '食神':'十神之一：温和的输出。管才艺、口福、产出。',
+ '伤官':'十神之一：锋利的输出。管表达、作品、不服管。',
+ '比肩':'十神之一：和你同类的人。兄弟姐妹、朋友、合作者。',
+ '劫财':'十神之一：同类但会分走你东西的人。竞争者，也是感情里「第三方」的位置。',
+ '冲':'两个地支正面相撞，对应的领域容易动荡、变化。',
+ '合':'两个地支互相吸引绑定，对应领域容易黏连、牵制。',
+ '刑':'地支之间互相消耗的关系，多为内部摩擦。',
+ '自刑':'同一个字出现两次自己跟自己较劲，典型表现是内耗。',
+ '害':'地支之间暗中妨碍的关系，比冲隐蔽。',
+ '大运':'从起运开始，每十年换一个大环境，像游戏换关卡。',
+ '流年':'每一年的运，叠加在大运之上。',
+ '起运':'你的大运系统开始运转的岁数，由出生时刻到节气的距离算出。',
+ '宫位':'四柱各管一类人：年柱父母、月柱兄弟、日支配偶、时柱子女。',
+ '配偶宫':'日柱下面那个字的位置，看亲密关系的模式。',
+ '父母宫':'年柱的位置，看出身和父母给你的底色。',
+ '十二长生':'把一个天干在十二个地支上的状态比作人的一生（长生、帝旺、死、墓…），描述它在那个位置有没有劲。',
+ '帝旺':'十二长生里最有劲的状态。',
+ '长生':'十二长生里刚起势的状态。',
+ '神煞':'盘上的特殊标记，像游戏里的 buff/debuff（桃花、驿马、贵人都是）。',
+ '调候':'按出生季节冷暖来补：冬天生的先补火，夏天生的先补水。',
+ '透干':'地支里藏的字也出现在天干上，暗牌变明牌，力量放大。',
+ '通根':'天干在地支里有同类接应，像树扎了根。',
+};
+const GLOSS_RE=new RegExp('('+Object.keys(GLOSS).sort((a,b)=>b.length-a.length).join('|')+')','g');
+function annotate(html,seen){
+  seen=seen||new Set();
+  return html.split(/(<[^>]+>)/).map(seg=>seg.startsWith('<')?seg:seg.replace(GLOSS_RE,m=>{
+    if(seen.has(m))return m; seen.add(m);
+    return '<span class="term" data-t="'+m+'">'+m+'</span>';
+  })).join('');
+}
+document.addEventListener('click',e=>{
+  const pop=document.querySelector('#termPop');
+  if(e.target.classList&&e.target.classList.contains('term')){
+    const t=e.target.dataset.t;
+    pop.innerHTML='<b>'+t+'</b>　'+GLOSS[t];
+    pop.style.display='block';
+    const r=e.target.getBoundingClientRect();
+    pop.style.left=Math.min(window.innerWidth-pop.offsetWidth-10,Math.max(8,r.left))+'px';
+    pop.style.top=(r.bottom+window.scrollY+6)+'px';
+  } else if(pop) pop.style.display='none';
+});
+</script>
 <script>const DEMO_CHART=__CHART__;const DEMO_FINAL=__FINAL__;const PROCESS=__PROCESS__;</script>
 <script>
 const $=s=>document.querySelector(s);
@@ -339,7 +438,7 @@ $('#hints').innerHTML=HINTS.map(h=>`<span class="hint">${h}</span>`).join('');
 $('#hints').querySelectorAll('.hint').forEach(n=>n.onclick=()=>{$('#q').value=n.textContent;ask()});
 
 /* ④ 推断 */
-const para=t=>t.split('\n\n').map(x=>`<p>${x.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')}</p>`).join('');
+const para=(t,seen)=>t.split('\n\n').map(x=>`<p>${annotate(x.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>'),seen)}</p>`).join('');
 const obs=new IntersectionObserver(es=>{
   if(mode!=='full')return;
   for(const e of es) if(e.isIntersecting&&e.target.dataset.block) playBlock(e.target.dataset.block);
@@ -348,9 +447,10 @@ function renderFinal(){
   $('#who').textContent=F.who+'　·　真太阳时 '+CHART.time.trueSolarTime;
   $('#reading').innerHTML=F.blocks.map(b=>{
     if(b.id==='oneline') return `<div class="block"><div class="one">${b.text}</div></div>`;
+    const seen=new Set();
     let h=`<div class="block" data-block="${b.id}"><h2>${b.title}</h2>`;
-    if(b.text) h+=para(b.text);
-    if(b.segments) h+=b.segments.map(s=>`<div class="seg"><div><span class="age">${s.age}</span><span class="pl">${s.pillar}</span></div>${para(s.text)}</div>`).join('');
+    if(b.text) h+=para(b.text,seen);
+    if(b.segments) h+=b.segments.map(s=>`<div class="seg"><div><span class="age">${s.age}</span><span class="pl">${s.pillar}</span></div>${para(s.text,seen)}</div>`).join('');
     return h+'</div>';
   }).join('');
   $('#genArea').innerHTML=(F.stub&&window.BAZI_API)?`<div class="genWrap"><button class="goBtn" id="genFull">生成完整命书</button>
@@ -413,20 +513,30 @@ function showPara(i,instant){
   $('#dlgProg').textContent=(fi+1)+' / '+FLOW.length;
   $('#dlgText').style.color=f.gold?'#F2EDFF':'';
   if(f.first) playBlock(f.block);
+  updateNav();
   if(typing){clearInterval(typing);typing=null}
-  if(instant){$('#dlgText').innerHTML=fmt(f.t);$('#dlgNext').textContent='▼';return}
+  if(instant){$('#dlgText').innerHTML=annotate(fmt(f.t),new Set());updateNav();$('#dlgNext').textContent='▼';return}
   let n=0;const chars=[...f.t];
   $('#dlgText').innerHTML='';$('#dlgNext').textContent='…';
   typing=setInterval(()=>{
     n+=2;
     $('#dlgText').innerHTML=fmt(chars.slice(0,n).join(''));
-    if(n>=chars.length){clearInterval(typing);typing=null;$('#dlgNext').textContent='▼'}
+    if(n>=chars.length){clearInterval(typing);typing=null;$('#dlgText').innerHTML=annotate(fmt(f.t),new Set());$('#dlgNext').textContent='▼'}
   },50);
 }
 $('#dlgBox').onclick=()=>{ if(typing){showPara(fi,true)} else if(fi<FLOW.length-1){showPara(fi+1)} };
+function updateNav(){
+  const cur=FLOW[fi]&&FLOW[fi].title, pv=FLOW[fi-1], nx=FLOW[fi+1];
+  $('#navPrev').textContent=pv?(pv.title!==cur?'← 上一章·'+pv.title:'← 上一段'):'← 开头';
+  $('#navNext').textContent=nx?(nx.title!==cur?'下一章·'+nx.title+' →':'下一段 →'):'完 ·';
+}
 $('#navPrev').onclick=e=>{e.stopPropagation();showPara(fi-1,true)};
 $('#navNext').onclick=e=>{e.stopPropagation();if(fi<FLOW.length-1)showPara(fi+1)};
 document.addEventListener('keydown',e=>{if(mode!=='dlg')return;if(e.key===' '||e.key==='Enter'){if(e.target.tagName!=='INPUT'){e.preventDefault();$('#dlgBox').click()}}});
+$('#bigBtn').onclick=()=>{
+  document.body.classList.toggle('big');
+  $('#bigBtn').textContent=document.body.classList.contains('big')?'A⁻':'A⁺';
+};
 $('#modeBtn').onclick=()=>{
   mode=mode==='dlg'?'full':'dlg';
   $('#dlgBox').style.display=mode==='dlg'?'':'none';
