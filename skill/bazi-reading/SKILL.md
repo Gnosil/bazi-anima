@@ -5,6 +5,27 @@ description: 按 Dan 的方法论解读八字命盘。输入 engine/ 产出的 c
 
 # 八字解读 —— Dan 的方法论
 
+## 工具调用（强制，按序执行，缺一不可）
+
+本 skill 的每次执行都必须实际发起下列调用。「凭记忆」跳过任何一步 = 整轮作废。
+
+| # | 步骤 | 工具 | 要求 |
+|---|---|---|---|
+| T1 | **排盘** | Bash: `node engine/cli.js --date=… --time=… --gender=… --city=…` | 必须实跑引擎拿 chart.json。**禁止手算任何干支**。没有出生地经度时必须在输出里带上引擎给的 warning |
+| T2 | **排盘交叉校验** | 会话中存在万年历/排盘类 MCP 工具时必须调用 | 四柱逐柱比对；不一致 → 停止，报告差异，不许继续断 |
+| T3 | **知识检索（RAG）** | Read `references/glossary.md`、`references/boundaries.md`；配置了向量库/记忆类 MCP 时，用「日主X 月令Y 强弱Z」为 query 检索 | 断语落笔前必须完成。boundaries 是红线，glossary 是翻译表 |
+| T4 | **相似案例** | Glob + Read `cases/*/`，找同日主五行或同强弱方向的 2 个已有案例 | 作为 few-shot 参照；`cases/` 为空时记录「无案例可参照」 |
+| T5 | **写盘入库** | Write `cases/<id>/chart.json` + `reading.json` + `final.json` | 每张算过的盘必须落盘，作为回归测试与未来 RAG 语料 |
+| T6 | **动画脚本** | 按 `anima/stage/DSL.md` 生成 | 见下——这是输出的一部分，不是可选项 |
+
+### T6 动画脚本的硬性要求
+
+- `final.json` 的**每个 block 必须带 `anim` 字段**（DSL 脚本），一个都不能少
+- 用户后续提问的回答 = **一段 10–20 秒循环动画 + 一条静态字幕**，不是文字。
+  文字只出现在 caption（≤50 字，解释画面在说明什么）
+- 脚本必须能通过 `Stage.validateScript()`（sprite/behavior 白名单、caption 必填、duration 钳制 10–20s）
+- 触碰 boundaries 红线的问题 → 固定返回 `hero.shrug + ban` 脚本，caption 温和拒答
+
 ## 铁律（违反即整轮作废）
 
 1. **绝不自己算干支。** 四柱、藏干、大运、节气一律只从 `chart.json` 读。
