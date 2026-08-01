@@ -1,0 +1,10 @@
+{
+  "name": "bazi-anima-server",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "node test-local.js",
+    "deploy:vercel": "vercel deploy --prod",
+    "deploy:cf": "wrangler deploy worker.js --name bazi-ask"
+  }
+}

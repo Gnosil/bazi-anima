@@ -53,6 +53,22 @@ h1{font-size:24px;color:#F2EDFF;line-height:1;letter-spacing:3px}
 .hint{border:2px solid #33285A;padding:1px 6px;color:#8579B0;cursor:pointer;background:#0E0B14}
 .hint:hover{border-color:#6B5CA5;color:#C6BCE6}
 
+/* 对话模式 */
+.modeBar{display:flex;justify-content:space-between;align-items:center;margin-top:18px}
+.modeBtn{border:2px solid #443A6B;background:#171226;color:#8579B0;padding:4px 10px;cursor:pointer;font-family:inherit;font-size:12px}
+.modeBtn:hover{border-color:#F5C542;color:#F5C542}
+.dlgBox{border:2px solid #F5C542;background:#171226;padding:14px 14px 22px;margin-top:8px;position:relative;cursor:pointer;min-height:120px}
+.dlgTitle{color:#F5C542;letter-spacing:2px;margin-bottom:8px;font-size:24px;line-height:1.2}
+.dlgKicker{color:#5A4E80;margin-bottom:8px}
+.dlgText{color:#C6BCE6;white-space:pre-wrap}
+.dlgText strong{color:#F2EDFF;font-weight:normal;border-bottom:2px solid #F5C542}
+.dlgNext{position:absolute;right:10px;bottom:6px;color:#F5C542;animation:blink 1s steps(2,end) infinite}
+.dlgProg{position:absolute;left:10px;bottom:6px;color:#5A4E80}
+.dlgNav{display:flex;gap:6px;justify-content:space-between;margin-top:6px}
+.dlgNav span{color:#5A4E80;cursor:pointer;border:2px solid #241C3D;padding:2px 8px}
+.dlgNav span:hover{color:#C6BCE6;border-color:#443A6B}
+@keyframes blink{50%{opacity:0}}
+
 /* 4. 推断 */
 .block{margin-top:18px}
 .block h2{font-size:24px;color:#F5C542;line-height:1.2;letter-spacing:2px;margin-bottom:8px;
@@ -117,8 +133,23 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;heigh
     <div class="hints" id="hints"></div>
   </div>
 
-  <!-- ④ 推断 -->
-  <div id="reading"></div>
+  <!-- ④ 推断 · 对话模式（默认）：一段一段讲，点一下继续 -->
+  <div class="modeBar">
+    <span class="lab" style="margin:0">解读</span>
+    <button class="modeBtn" id="modeBtn">整页阅读</button>
+  </div>
+  <div class="dlgBox" id="dlgBox">
+    <div class="dlgTitle" id="dlgTitle"></div>
+    <div class="dlgKicker" id="dlgKicker"></div>
+    <div class="dlgText" id="dlgText"></div>
+    <div class="dlgNext" id="dlgNext">▼</div>
+    <div class="dlgProg" id="dlgProg"></div>
+  </div>
+  <div class="dlgNav" id="dlgNav">
+    <span id="navPrev">← 上一章</span>
+    <span id="navNext">下一章 →</span>
+  </div>
+  <div id="reading" style="display:none"></div>
 
   <!-- ⑤ 时间轴 -->
   <div class="panel sec">
@@ -218,6 +249,7 @@ $('#reading').innerHTML=FINAL.blocks.map(b=>{
 }).join('');
 // 滚到哪一块，舞台就演那一块的脚本
 const obs=new IntersectionObserver(es=>{
+  if(mode!=='full')return;
   for(const e of es) if(e.isIntersecting&&e.target.dataset.block) playBlock(e.target.dataset.block);
 },{rootMargin:'-40% 0px -40% 0px'});
 document.querySelectorAll('.block[data-block]').forEach(n=>obs.observe(n));
@@ -251,6 +283,52 @@ $('#slider').oninput=e=>onYear(+e.target.value);
 $('#yNow').textContent=2026;renderMap(2026);
 const d0=DY.find(x=>2026>=x.startYear&&x.endYear>=2026),l0=d0&&d0.liuNian.find(l=>l.year===2026);
 $('#yInfo').innerHTML=d0?`大运 <span class="hi">${d0.ganZhi}</span>　流年 <span class="hi">${l0?l0.ganZhi:'—'}</span>　${l0?l0.age+' 岁':''}`:'';
+
+/* 对话模式 —— 一段一段讲，正在打字时点一下=立刻显示全段，打完点一下=下一段 */
+const FLOW=[];
+FINAL.blocks.forEach(b=>{
+  const paras=[];
+  if(b.text) b.text.split('\n\n').forEach(t=>paras.push({t}));
+  if(b.segments) b.segments.forEach(sg=>sg.text.split('\n\n').forEach((t,i)=>paras.push({t,kick:i===0?sg.age+'　'+sg.pillar:null})));
+  paras.forEach((p,i)=>FLOW.push({block:b.id,title:b.title,first:i===0,gold:b.id==='oneline',...p}));
+});
+let fi=0,typing=null,mode='dlg';
+const fmt=t=>t.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
+function showPara(i,instant){
+  fi=Math.max(0,Math.min(FLOW.length-1,i));
+  const f=FLOW[fi];
+  $('#dlgTitle').textContent=f.title;
+  $('#dlgKicker').textContent=f.kick||'';
+  $('#dlgKicker').style.display=f.kick?'':'none';
+  $('#dlgProg').textContent=(fi+1)+' / '+FLOW.length;
+  $('#dlgText').style.color=f.gold?'#F2EDFF':'';
+  if(f.first) playBlock(f.block);
+  if(typing){clearInterval(typing);typing=null}
+  if(instant){$('#dlgText').innerHTML=fmt(f.t);$('#dlgNext').textContent='▼';return}
+  let n=0;const chars=[...f.t];
+  $('#dlgText').innerHTML='';$('#dlgNext').textContent='…';
+  typing=setInterval(()=>{
+    n+=2;
+    $('#dlgText').innerHTML=fmt(chars.slice(0,n).join(''));
+    if(n>=chars.length){clearInterval(typing);typing=null;$('#dlgNext').textContent='▼'}
+  },50);
+}
+$('#dlgBox').onclick=()=>{ if(typing){showPara(fi,true)} else if(fi<FLOW.length-1){showPara(fi+1)} };
+$('#navPrev').onclick=e=>{e.stopPropagation();showPara(fi-1,true)};
+$('#navNext').onclick=e=>{e.stopPropagation();if(fi<FLOW.length-1)showPara(fi+1)};
+document.addEventListener('keydown',e=>{if(mode!=='dlg')return;if(e.key===' '||e.key==='Enter'){if(e.target.tagName!=='INPUT'){e.preventDefault();$('#dlgBox').click()}}});
+$('#modeBtn').onclick=()=>{
+  mode=mode==='dlg'?'full':'dlg';
+  $('#dlgBox').style.display=mode==='dlg'?'':'none';
+  $('#dlgNav').style.display=mode==='dlg'?'':'none';
+  $('#reading').style.display=mode==='dlg'?'none':'';
+  $('#modeBtn').textContent=mode==='dlg'?'整页阅读':'一段一段看';
+};
+showPara(0);
+
+/* 后端地址：URL 里带 #api=https://xxx/api/ask 即接通实时生成 */
+const mApi=location.hash.match(/#api=(.+)/);
+if(mApi) window.BAZI_API=decodeURIComponent(mApi[1]);
 
 /* 开发者视图：推理过程 —— 用户看不到，点右上角那个点 */
 $('#devBtn').onclick=()=>{
