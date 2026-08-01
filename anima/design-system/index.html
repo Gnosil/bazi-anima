@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>bazi-anima 设计系统 v0.1</title>
+<style>
+@font-face{font-family:'Zpix';src:url('__FONT_URL__') format('woff2');font-display:swap}
+*{box-sizing:border-box;margin:0;padding:0}
+html{background:#0E0B14}
+body{font-family:'Zpix','MS Gothic',monospace;background:#0E0B14;color:#C6BCE6;
+  font-size:12px;line-height:1.5;padding:24px;-webkit-font-smoothing:none;image-rendering:pixelated}
+canvas{image-rendering:pixelated;image-rendering:crisp-edges;display:block}
+.wrap{max-width:1080px;margin:0 auto}
+h1{font-size:36px;color:#F2EDFF;line-height:1;margin-bottom:8px;letter-spacing:2px}
+h2{font-size:24px;color:#F5C542;line-height:1;margin:48px 0 4px;letter-spacing:1px}
+h3{font-size:12px;color:#F2EDFF;margin:24px 0 8px;letter-spacing:1px}
+p{color:#8579B0;max-width:60ch}
+.sub{color:#8579B0;margin-bottom:32px}
+.panel{background:#171226;border:2px solid #443A6B;padding:16px;margin-top:12px}
+.grid{display:grid;gap:12px}
+.hr{height:2px;background:#443A6B;margin:32px 0}
+.mono{color:#8579B0}
+code{background:#241C3D;color:#F5C542;padding:0 4px}
+
+/* 色卡 */
+.sw{display:flex;flex-direction:column;border:2px solid #443A6B}
+.sw .band{height:36px}
+.sw .meta{background:#241C3D;padding:8px}
+.sw .meta b{color:#F2EDFF;display:block}
+.sw .meta span{color:#8579B0;font-size:12px}
+
+/* 血条 */
+.bar{position:relative;height:16px;background:#0E0B14;border:2px solid #443A6B}
+.bar>i{display:block;height:100%}
+.barRow{display:grid;grid-template-columns:36px 1fr 48px;gap:8px;align-items:center;margin-bottom:8px}
+.barRow .lab{text-align:center;font-size:12px}
+.barRow .val{text-align:right;color:#8579B0}
+
+/* 技能格 */
+.skill{width:56px;height:56px;border:2px solid;display:flex;align-items:center;justify-content:center;
+  background:#171226;position:relative;cursor:pointer;transition:none}
+.skill:hover{background:#241C3D}
+.skill .n{position:absolute;right:2px;bottom:0;color:#F2EDFF;font-size:12px}
+
+/* buff */
+.buff{display:inline-flex;align-items:center;gap:4px;border:2px solid;padding:4px 8px;background:#171226;margin:0 4px 4px 0}
+
+/* 柱卡 */
+.pillar{border:2px solid #443A6B;background:#171226;width:96px;text-align:center}
+.pillar .hd{background:#241C3D;padding:4px;color:#8579B0}
+.pillar .gz{font-size:36px;line-height:1.2;padding:8px 0}
+.pillar .ft{border-top:2px solid #443A6B;padding:4px;font-size:12px}
+
+/* 关卡节点 */
+.map{display:flex;align-items:center;overflow-x:auto;padding:16px 0}
+.node{flex:0 0 auto;width:64px;text-align:center;cursor:pointer}
+.node .dot{width:32px;height:32px;margin:0 auto;border:2px solid;background:#171226;
+  display:flex;align-items:center;justify-content:center;color:#F2EDFF}
+.node.cur .dot{box-shadow:0 0 0 4px #F5C542}
+.link{flex:0 0 auto;width:16px;height:2px;background:#443A6B}
+
+/* 时间轴 */
+input[type=range]{-webkit-appearance:none;width:100%;height:16px;background:#0E0B14;border:2px solid #443A6B}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:20px;background:#F5C542;border:2px solid #0E0B14;cursor:pointer}
+
+/* 对话框 */
+.dlg{border:2px solid #F5C542;background:#171226;padding:16px;position:relative}
+.dlg:after{content:'▼';position:absolute;right:12px;bottom:4px;color:#F5C542;animation:blink 1s steps(2,end) infinite}
+@keyframes blink{50%{opacity:0}}
+.rule{border-left:4px solid #F5C542;padding-left:12px;color:#C6BCE6;margin:8px 0}
+.bad{border-left-color:#FF5C6E}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>BAZI—ANIMA</h1>
+<div class="sub">设计系统 v0.1 · 像素 RPG 方向 · 娱乐向<br>
+这一页是唯一真源的<b style="color:#F2EDFF">可视化</b>。颜色/尺寸/动效改 <code>tokens.js</code>，这页自动跟着变。</div>
+
+<div class="rule">核心约束：<b style="color:#F2EDFF">整数缩放、三档色阶、12 的倍数字号、steps() 动效</b>。这四条是像素风「像不像」的全部。</div>
+
+<!-- ═══ 网格 ═══ -->
+<h2>01 网格与尺寸</h2>
+<p>一切尺寸都是 4px 的整数倍。精灵原始画布只有三种规格，放大只允许 2×/3×/4×，绝不允许 1.5×。</p>
+<div class="panel grid" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))" id="gridSpecs"></div>
+
+<!-- ═══ 五行色 ═══ -->
+<h2>02 五行色板</h2>
+<p>每个五行三档：<b style="color:#F2EDFF">dark 阴影 / base 主体 / light 高光</b>。像素画只用这三档——限制色阶是像素风的灵魂，多一档就糊。</p>
+<div class="panel grid" style="grid-template-columns:repeat(5,1fr)" id="wxPal"></div>
+
+<h3>五行图标（16×16，程序化绘制，无外部图片）</h3>
+<div class="panel" style="display:flex;gap:24px;flex-wrap:wrap" id="wxIcons"></div>
+
+<!-- ═══ 十神色 ═══ -->
+<h2>03 十神色板</h2>
+<p>十神有 10 个，配 10 种色相会糊。<b style="color:#F2EDFF">按五组分色相，组内用明暗区分阴阳</b>——阳干用 light，阴干用 base。</p>
+<div class="panel grid" style="grid-template-columns:repeat(5,1fr)" id="ssPal"></div>
+
+<!-- ═══ 中性色 ═══ -->
+<h2>04 界面中性色</h2>
+<div class="panel grid" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr))" id="basePal"></div>
+
+<!-- ═══ 排版 ═══ -->
+<h2>05 排版</h2>
+<p>Zpix 是 12px 点阵设计。<b style="color:#F2EDFF">字号只能取 12 / 24 / 36 / 48</b>，取 14px 或 18px 会让点阵插值糊掉。字体已子集化到 1139 字，17KB。</p>
+<div class="panel">
+  <div style="font-size:48px;line-height:1;color:#F2EDFF">48 甲子命盘</div>
+  <div style="font-size:36px;line-height:1.2;color:#F5C542;margin-top:12px">36 大运 · 丙寅</div>
+  <div style="font-size:24px;line-height:1.5;color:#C6BCE6;margin-top:12px">24 十神 · 正官七杀</div>
+  <div style="font-size:12px;line-height:1.5;color:#8579B0;margin-top:12px">12 正文 —— 日主乙木生于亥月，水旺木浮，喜火土调候。ABCDEfghij 0123456789</div>
+</div>
+
+<!-- ═══ 组件 ═══ -->
+<h2>06 组件</h2>
+
+<h3>6.1 五行力量条 —— 属性面板</h3>
+<p>直接消费 <code>chart.wuXing.percent</code>。条本身是像素块，不用渐变。</p>
+<div class="panel" id="wxBars"></div>
+
+<h3>6.2 十神技能格 —— 技能栏</h3>
+<p>直接消费 <code>chart.shiShenCount</code>。右下角数字 = 该十神在盘中的分量。</p>
+<div class="panel" style="display:flex;gap:8px;flex-wrap:wrap" id="skills"></div>
+
+<h3>6.3 神煞 Buff / Debuff</h3>
+<p>娱乐向的关键：<b style="color:#F2EDFF">术语必须翻译成玩家话</b>。「驿马」→「停不下来」，「劫煞」→「破财警告」。翻译表在 <code>tokens.shenSha</code>。</p>
+<div class="panel" id="buffs"></div>
+
+<h3>6.4 四柱卡</h3>
+<div class="panel" style="display:flex;gap:8px;flex-wrap:wrap" id="pillars"></div>
+
+<h3>6.5 大运关卡地图</h3>
+<p>每步大运 = 一个关卡节点。节点亮度 = 十二长生的 level（<code>tokens.changSheng</code>），颜色 = 该运天干五行。</p>
+<div class="panel"><div class="map" id="daYunMap"></div></div>
+
+<h3>6.6 流年时间轴</h3>
+<p>核心交互。拖动 → 上面的关卡地图高亮跟着走 → 下方弹出该年的事件卡。</p>
+<div class="panel">
+  <input type="range" id="yearSlider" min="2003" max="2062" value="2026">
+  <div style="display:flex;justify-content:space-between;margin-top:8px;color:#8579B0"><span>2003</span><span id="yearNow" style="color:#F5C542;font-size:24px">2026</span><span>2062</span></div>
+</div>
+
+<h3>6.7 旁白框</h3>
+<p>解读文字的容器。娱乐向 → 一次只出一句，逐字打字机，点击继续。</p>
+<div class="panel"><div class="dlg" id="dlg">　</div></div>
+
+<!-- ═══ 动效 ═══ -->
+<h2>07 动效规范</h2>
+<div class="panel">
+  <div class="rule">精灵动画统一 <b style="color:#F2EDFF">8 fps</b>。复古手感来自低帧率，不是来自滤镜。</div>
+  <div class="rule">所有 CSS 过渡必须用 <code>steps(n, end)</code>。</div>
+  <div class="rule bad">禁止：<code>ease-in-out</code> / <code>cubic-bezier</code> / <code>linear-gradient</code> / 非整数 <code>transform: scale()</code> / <code>border-radius</code> / <code>box-shadow</code> 做柔和阴影。</div>
+  <div class="rule">时长三档：160ms / 320ms / 640ms。</div>
+</div>
+
+<div class="hr"></div>
+<p style="color:#8579B0">bazi-anima · 设计系统由 <code>tokens.js</code> + <code>sprites.js</code> 驱动 · 本页仅为预览</p>
+</div>
+
+<script>__TOKENS__</script>
+<script>__SPRITES__</script>
+<script>
+const $ = s => document.querySelector(s);
+const el = (t, a = {}, h = '') => { const n = document.createElement(t); Object.assign(n, a); if (h) n.innerHTML = h; return n; };
+
+/* 01 网格 */
+$('#gridSpecs').innerHTML = [
+  ['UNIT 基础单位', DS.UNIT + 'px', '所有间距/边框都是它的倍数'],
+  ['SPRITE 图标', DS.SPRITE + '×' + DS.SPRITE, '天干/地支/十神/神煞图标'],
+  ['SPRITE_BIG 立绘', DS.SPRITE_BIG + '×' + DS.SPRITE_BIG, '日主角色'],
+  ['TILE 场景块', DS.TILE + '×' + DS.TILE, '大运关卡背景'],
+  ['SCALE 缩放', '2× / 3× / 4×', '只允许整数倍'],
+].map(([a,b,c]) => `<div><b style="color:#F2EDFF">${a}</b><div style="font-size:24px;color:#F5C542;line-height:1.2">${b}</div><span>${c}</span></div>`).join('');
+
+/* 02 五行色板 */
+$('#wxPal').innerHTML = Object.entries(DS.wuXing).map(([k, v]) => `
+  <div class="sw">
+    <div class="band" style="background:${v.light}"></div>
+    <div class="band" style="background:${v.base};height:56px"></div>
+    <div class="band" style="background:${v.dark}"></div>
+    <div class="meta"><b style="font-size:24px">${k}</b><span>${v.light}<br>${v.base}<br>${v.dark}</span></div>
+  </div>`).join('');
+
+/* 五行图标 */
+$('#wxIcons').innerHTML = '';
+for (const [wx, v] of Object.entries(DS.wuXing)) {
+  const box = el('div', {}, '');
+  box.style.textAlign = 'center';
+  const c = el('canvas'); c.width = 16 * 4; c.height = 16 * 4;
+  Sprites.drawIcon(c.getContext('2d'), Sprites.WX_TO_ICON[wx], v, 4);
+  box.appendChild(c);
+  box.appendChild(el('div', {}, `<span style="color:${v.base}">${wx}</span> <span style="color:#8579B0">4×</span>`));
+  $('#wxIcons').appendChild(box);
+}
+
+/* 03 十神色板 */
+$('#ssPal').innerHTML = Object.entries(DS.shiShenGroup).map(([k, v]) => {
+  const members = Object.entries(DS.shiShenToGroup).filter(([, g]) => g === k).map(([s]) => s);
+  return `<div class="sw">
+    <div class="band" style="background:${v.light}"></div>
+    <div class="band" style="background:${v.base};height:48px"></div>
+    <div class="band" style="background:${v.dark}"></div>
+    <div class="meta"><b style="font-size:24px">${v.label}</b><span>${v.role}<br>${members.map(m=>`<i style="color:${DS.colorOfShiShen(m)};font-style:normal">${m}</i>`).join(' ')}</span></div>
+  </div>`;
+}).join('');
+
+/* 04 中性色 */
+$('#basePal').innerHTML = Object.entries(DS.base).map(([k, v]) =>
+  `<div class="sw"><div class="band" style="background:${v};height:48px"></div><div class="meta"><b>${k}</b><span>${v}</span></div></div>`).join('');
+
+/* 6.1 五行条 —— 用真实测试盘数据 */
+const DEMO = { 木:28.1, 火:8.6, 土:11.4, 金:12.4, 水:39.5 };
+$('#wxBars').innerHTML = Object.entries(DEMO).map(([k, v]) => {
+  const c = DS.wuXing[k];
+  return `<div class="barRow">
+    <div class="lab" style="color:${c.base};font-size:24px">${k}</div>
+    <div class="bar"><i style="width:${v * 2.2}%;background:${c.base};border-right:2px solid ${c.light}"></i></div>
+    <div class="val">${v}%</div>
+  </div>`;
+}).join('') + '<p style="margin-top:8px">数据来自 <code>engine/</code> 实跑的测试盘：戊寅 癸亥 乙亥 辛巳</p>';
+
+/* 6.2 技能格 */
+const DEMO_SS = { 正财:1.5, 偏印:1, 七杀:1.5, 劫财:1, 比肩:0.5, 伤官:0.5, 正官:0.5, 食神:0.5 };
+$('#skills').innerHTML = Object.entries(DEMO_SS).map(([s, n]) => {
+  const c = DS.colorOfShiShen(s);
+  return `<div class="skill" style="border-color:${c}" title="${DS.shiShenGroup[DS.shiShenToGroup[s]].role}">
+    <span style="color:${c};font-size:24px">${s[0]}</span><span class="n">${n}</span></div>`;
+}).join('');
+
+/* 6.3 buffs */
+$('#buffs').innerHTML = Object.entries(DS.shenSha).map(([k, v]) => {
+  const c = DS.toneColor[v.tone];
+  return `<span class="buff" style="border-color:${c}">
+    <b style="color:${c}">${v.label}</b>
+    <span style="color:#8579B0">${v.blurb}</span>
+    <i style="color:#443A6B;font-style:normal">${k}</i></span>`;
+}).join('');
+
+/* 6.4 四柱卡 */
+const DEMO_P = [
+  { lab:'年', gz:'戊寅', ss:'正财', wx:'土' },
+  { lab:'月', gz:'癸亥', ss:'偏印', wx:'水' },
+  { lab:'日', gz:'乙亥', ss:'日主', wx:'木' },
+  { lab:'时', gz:'辛巳', ss:'七杀', wx:'金' },
+];
+$('#pillars').innerHTML = DEMO_P.map(p => {
+  const c = DS.wuXing[p.wx], sc = p.ss === '日主' ? DS.base.gold : DS.colorOfShiShen(p.ss);
+  return `<div class="pillar" style="border-color:${c.dark}">
+    <div class="hd">${p.lab}柱</div>
+    <div class="gz" style="color:${c.base}">${p.gz[0]}<br>${p.gz[1]}</div>
+    <div class="ft" style="color:${sc}">${p.ss}</div></div>`;
+}).join('');
+
+/* 6.5 大运地图 */
+const DEMO_DY = [
+  { y:2003, gz:'甲子', wx:'木', cs:'病' }, { y:2013, gz:'乙丑', wx:'木', cs:'衰' },
+  { y:2023, gz:'丙寅', wx:'火', cs:'帝旺' }, { y:2033, gz:'丁卯', wx:'火', cs:'临官' },
+  { y:2043, gz:'戊辰', wx:'土', cs:'冠带' }, { y:2053, gz:'己巳', wx:'土', cs:'沐浴' },
+];
+function renderMap(curYear) {
+  const m = $('#daYunMap'); m.innerHTML = '';
+  DEMO_DY.forEach((d, i) => {
+    if (i) m.appendChild(el('div', { className:'link' }));
+    const c = DS.wuXing[d.wx], cs = DS.changSheng[d.cs];
+    const cur = curYear >= d.y && curYear < d.y + 10;
+    const alpha = [0.25, 0.45, 0.65, 0.85, 1][cs.level];
+    const n = el('div', { className:'node' + (cur ? ' cur' : '') },
+      `<div class="dot" style="border-color:${c.base};opacity:${alpha}">${d.gz[0]}</div>
+       <div style="color:${c.base};margin-top:4px">${d.gz}</div>
+       <div style="color:#8579B0">${cs.label}</div>
+       <div style="color:#443A6B">${d.y}</div>`);
+    m.appendChild(n);
+  });
+}
+renderMap(2026);
+
+/* 6.6 时间轴 */
+$('#yearSlider').addEventListener('input', e => {
+  $('#yearNow').textContent = e.target.value;
+  renderMap(+e.target.value);
+});
+
+/* 6.7 打字机 */
+const LINE = '日主乙木，生在亥月水旺——你像一株泡在水里的藤，营养过剩，却缺一把火。';
+let ti = 0;
+setInterval(() => { ti = (ti + 1) % (LINE.length + 24); $('#dlg').textContent = LINE.slice(0, Math.min(ti, LINE.length)) || '　'; }, 90);
+</script>
+</body>
+</html>

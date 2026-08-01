@@ -1,0 +1,14 @@
+{
+  "name": "bazi-anima",
+  "version": "0.1.0",
+  "description": "八字排盘引擎 + 方法论 Skill + 可交互像素动画",
+  "type": "commonjs",
+  "main": "engine/paipan.js",
+  "scripts": {
+    "paipan": "node engine/cli.js",
+    "test": "node engine/test.js"
+  },
+  "dependencies": {
+    "lunar-javascript": "^1.7.4"
+  }
+}
