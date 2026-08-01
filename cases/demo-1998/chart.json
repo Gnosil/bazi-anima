@@ -1,0 +1,1991 @@
+{
+  "meta": {
+    "schemaVersion": "0.1.0",
+    "engine": "bazi-anima/engine + lunar-javascript",
+    "config": {
+      "ziShi": "late",
+      "trueSolarTime": {
+        "longitude": true,
+        "equationOfTime": true
+      },
+      "qiYun": "exact",
+      "daYunCount": 10,
+      "liuNianPerYun": 10,
+      "wangShuaiWeights": {
+        "monthZhi": 3,
+        "dayZhi": 1.5,
+        "otherZhi": 1,
+        "gan": 1,
+        "hideMain": 1
+      },
+      "shenSha": null,
+      "palaces": {
+        "stepsPerPillar": 2
+      },
+      "relations": true
+    }
+  },
+  "input": {
+    "name": null,
+    "gender": "male",
+    "calendar": "solar",
+    "clockTime": "1998-11-24 10:30",
+    "birthplace": "北京",
+    "longitude": 116.41
+  },
+  "time": {
+    "trueSolarTime": "1998-11-24 10:28",
+    "correctionMinutes": -2,
+    "correctionParts": {
+      "lon": -14.36,
+      "eot": 12.34
+    },
+    "applied": true,
+    "warning": null
+  },
+  "solar": {
+    "year": 1998,
+    "month": 11,
+    "day": 24,
+    "hour": 10,
+    "minute": 28,
+    "week": "二"
+  },
+  "lunar": {
+    "text": "一九九八年十月初六",
+    "year": "一九九八",
+    "month": "十",
+    "day": "初六",
+    "jieQi": null,
+    "prevJieQi": "小雪",
+    "nextJieQi": "大雪"
+  },
+  "bazi": "戊寅 癸亥 乙亥 辛巳",
+  "dayMaster": {
+    "gan": "乙",
+    "wuXing": "木",
+    "yinYang": "阴"
+  },
+  "pillars": {
+    "year": {
+      "label": "年",
+      "ganZhi": "戊寅",
+      "gan": "戊",
+      "ganWuXing": "土",
+      "ganYinYang": "阳",
+      "zhi": "寅",
+      "zhiWuXing": "木",
+      "zhiYinYang": "阳",
+      "shiShenGan": "正财",
+      "shiShenZhi": [
+        "劫财",
+        "伤官",
+        "正财"
+      ],
+      "hideGan": [
+        {
+          "gan": "甲",
+          "kind": "本气",
+          "weight": 0.6,
+          "wuXing": "木",
+          "shiShen": "劫财"
+        },
+        {
+          "gan": "丙",
+          "kind": "中气",
+          "weight": 0.3,
+          "wuXing": "火",
+          "shiShen": "伤官"
+        },
+        {
+          "gan": "戊",
+          "kind": "余气",
+          "weight": 0.1,
+          "wuXing": "土",
+          "shiShen": "正财"
+        }
+      ],
+      "naYin": "城头土",
+      "xunKong": "申酉",
+      "diShi": "帝旺",
+      "changSheng": "帝旺"
+    },
+    "month": {
+      "label": "月",
+      "ganZhi": "癸亥",
+      "gan": "癸",
+      "ganWuXing": "水",
+      "ganYinYang": "阴",
+      "zhi": "亥",
+      "zhiWuXing": "水",
+      "zhiYinYang": "阴",
+      "shiShenGan": "偏印",
+      "shiShenZhi": [
+        "正印",
+        "劫财"
+      ],
+      "hideGan": [
+        {
+          "gan": "壬",
+          "kind": "本气",
+          "weight": 0.7,
+          "wuXing": "水",
+          "shiShen": "正印"
+        },
+        {
+          "gan": "甲",
+          "kind": "中气",
+          "weight": 0.3,
+          "wuXing": "木",
+          "shiShen": "劫财"
+        }
+      ],
+      "naYin": "大海水",
+      "xunKong": "子丑",
+      "diShi": "死",
+      "changSheng": "死"
+    },
+    "day": {
+      "label": "日",
+      "ganZhi": "乙亥",
+      "gan": "乙",
+      "ganWuXing": "木",
+      "ganYinYang": "阴",
+      "zhi": "亥",
+      "zhiWuXing": "水",
+      "zhiYinYang": "阴",
+      "shiShenGan": "日主",
+      "shiShenZhi": [
+        "正印",
+        "劫财"
+      ],
+      "hideGan": [
+        {
+          "gan": "壬",
+          "kind": "本气",
+          "weight": 0.7,
+          "wuXing": "水",
+          "shiShen": "正印"
+        },
+        {
+          "gan": "甲",
+          "kind": "中气",
+          "weight": 0.3,
+          "wuXing": "木",
+          "shiShen": "劫财"
+        }
+      ],
+      "naYin": "山头火",
+      "xunKong": "申酉",
+      "diShi": "死",
+      "changSheng": "死"
+    },
+    "hour": {
+      "label": "时",
+      "ganZhi": "辛巳",
+      "gan": "辛",
+      "ganWuXing": "金",
+      "ganYinYang": "阴",
+      "zhi": "巳",
+      "zhiWuXing": "火",
+      "zhiYinYang": "阴",
+      "shiShenGan": "七杀",
+      "shiShenZhi": [
+        "伤官",
+        "正官",
+        "正财"
+      ],
+      "hideGan": [
+        {
+          "gan": "丙",
+          "kind": "本气",
+          "weight": 0.6,
+          "wuXing": "火",
+          "shiShen": "伤官"
+        },
+        {
+          "gan": "庚",
+          "kind": "中气",
+          "weight": 0.3,
+          "wuXing": "金",
+          "shiShen": "正官"
+        },
+        {
+          "gan": "戊",
+          "kind": "余气",
+          "weight": 0.1,
+          "wuXing": "土",
+          "shiShen": "正财"
+        }
+      ],
+      "naYin": "白蜡金",
+      "xunKong": "申酉",
+      "diShi": "沐浴",
+      "changSheng": "沐浴"
+    }
+  },
+  "wuXing": {
+    "raw": {
+      "木": 2.95,
+      "火": 0.9,
+      "土": 1.2,
+      "金": 1.3,
+      "水": 4.15
+    },
+    "percent": {
+      "木": 28.1,
+      "火": 8.6,
+      "土": 11.4,
+      "金": 12.4,
+      "水": 39.5
+    },
+    "detail": [
+      {
+        "wuXing": "土",
+        "value": 1,
+        "from": "年干 戊"
+      },
+      {
+        "wuXing": "木",
+        "value": 0.6,
+        "from": "年支 寅 藏甲(本气)"
+      },
+      {
+        "wuXing": "火",
+        "value": 0.3,
+        "from": "年支 寅 藏丙(中气)"
+      },
+      {
+        "wuXing": "土",
+        "value": 0.1,
+        "from": "年支 寅 藏戊(余气)"
+      },
+      {
+        "wuXing": "水",
+        "value": 1,
+        "from": "月干 癸"
+      },
+      {
+        "wuXing": "水",
+        "value": 2.1,
+        "from": "月支 亥 藏壬(本气)"
+      },
+      {
+        "wuXing": "木",
+        "value": 0.9,
+        "from": "月支 亥 藏甲(中气)"
+      },
+      {
+        "wuXing": "木",
+        "value": 1,
+        "from": "日干 乙"
+      },
+      {
+        "wuXing": "水",
+        "value": 1.05,
+        "from": "日支 亥 藏壬(本气)"
+      },
+      {
+        "wuXing": "木",
+        "value": 0.45,
+        "from": "日支 亥 藏甲(中气)"
+      },
+      {
+        "wuXing": "金",
+        "value": 1,
+        "from": "时干 辛"
+      },
+      {
+        "wuXing": "火",
+        "value": 0.6,
+        "from": "时支 巳 藏丙(本气)"
+      },
+      {
+        "wuXing": "金",
+        "value": 0.3,
+        "from": "时支 巳 藏庚(中气)"
+      },
+      {
+        "wuXing": "土",
+        "value": 0.1,
+        "from": "时支 巳 藏戊(余气)"
+      }
+    ]
+  },
+  "wangShuai": {
+    "allyPercent": 67.6,
+    "foePercent": 32.4,
+    "label": "偏强",
+    "note": "仅为量化参考，最终强弱由 L2 方法论层判定（需考虑月令、通根、透干、调候）",
+    "map": {
+      "比劫": "木",
+      "印": "水",
+      "食伤": "火",
+      "财": "土",
+      "官杀": "金"
+    }
+  },
+  "shiShenCount": {
+    "正财": 2,
+    "劫财": 1.5,
+    "伤官": 1,
+    "偏印": 1,
+    "正印": 1,
+    "七杀": 1,
+    "正官": 0.5
+  },
+  "relations": {
+    "ganHe": [
+      {
+        "pillars": [
+          "年",
+          "月"
+        ],
+        "items": [
+          "戊",
+          "癸"
+        ],
+        "huaTo": "火"
+      }
+    ],
+    "ganChong": [
+      {
+        "pillars": [
+          "日",
+          "时"
+        ],
+        "items": [
+          "乙",
+          "辛"
+        ]
+      }
+    ],
+    "he": [
+      {
+        "pillars": [
+          "年",
+          "月"
+        ],
+        "items": [
+          "寅",
+          "亥"
+        ]
+      },
+      {
+        "pillars": [
+          "年",
+          "日"
+        ],
+        "items": [
+          "寅",
+          "亥"
+        ]
+      }
+    ],
+    "chong": [
+      {
+        "pillars": [
+          "月",
+          "时"
+        ],
+        "items": [
+          "亥",
+          "巳"
+        ]
+      },
+      {
+        "pillars": [
+          "日",
+          "时"
+        ],
+        "items": [
+          "亥",
+          "巳"
+        ]
+      }
+    ],
+    "hai": [
+      {
+        "pillars": [
+          "年",
+          "时"
+        ],
+        "items": [
+          "寅",
+          "巳"
+        ]
+      }
+    ],
+    "po": [
+      {
+        "pillars": [
+          "年",
+          "月"
+        ],
+        "items": [
+          "寅",
+          "亥"
+        ]
+      },
+      {
+        "pillars": [
+          "年",
+          "日"
+        ],
+        "items": [
+          "寅",
+          "亥"
+        ]
+      }
+    ],
+    "xing": [
+      {
+        "pillars": [
+          "月",
+          "日"
+        ],
+        "items": [
+          "亥",
+          "亥"
+        ],
+        "type": "自刑"
+      },
+      {
+        "items": [
+          "寅",
+          "巳"
+        ],
+        "type": "无恩之刑",
+        "full": false,
+        "note": "两支相刑"
+      }
+    ],
+    "sanHe": [],
+    "sanHui": []
+  },
+  "shenSha": [
+    {
+      "name": "驿马",
+      "ref": "日支",
+      "pillars": [
+        "时"
+      ]
+    },
+    {
+      "name": "劫煞",
+      "ref": "年支",
+      "pillars": [
+        "月",
+        "日"
+      ]
+    },
+    {
+      "name": "亡神",
+      "ref": "年支",
+      "pillars": [
+        "时"
+      ]
+    },
+    {
+      "name": "亡神",
+      "ref": "日支",
+      "pillars": [
+        "年"
+      ]
+    },
+    {
+      "name": "金舆",
+      "ref": "日干",
+      "pillars": [
+        "时"
+      ]
+    },
+    {
+      "name": "孤辰",
+      "ref": "年支",
+      "pillars": [
+        "时"
+      ]
+    }
+  ],
+  "palaces": {
+    "byPillar": {
+      "year": {
+        "label": "年",
+        "ganZhi": "戊寅",
+        "palace": "父母宫",
+        "also": [
+          "祖辈",
+          "出身背景"
+        ],
+        "note": "✅ Dan 确认父母在年柱",
+        "ageFrom": 0,
+        "ageTo": 4.4,
+        "ageDesc": "起运前",
+        "surface": {
+          "gan": "戊",
+          "zhi": "寅",
+          "shiShenGan": "正财",
+          "ganWuXing": "土",
+          "zhiWuXing": "木"
+        },
+        "deep": {
+          "hideGan": [
+            {
+              "gan": "甲",
+              "kind": "本气",
+              "weight": 0.6,
+              "wuXing": "木",
+              "shiShen": "劫财"
+            },
+            {
+              "gan": "丙",
+              "kind": "中气",
+              "weight": 0.3,
+              "wuXing": "火",
+              "shiShen": "伤官"
+            },
+            {
+              "gan": "戊",
+              "kind": "余气",
+              "weight": 0.1,
+              "wuXing": "土",
+              "shiShen": "正财"
+            }
+          ],
+          "changSheng": "帝旺",
+          "diShi": "帝旺",
+          "shiShenZhi": [
+            "劫财",
+            "伤官",
+            "正财"
+          ]
+        }
+      },
+      "month": {
+        "label": "月",
+        "ganZhi": "癸亥",
+        "palace": "兄弟宫",
+        "also": [
+          "家庭环境",
+          "青年际遇"
+        ],
+        "note": "✅ Dan 确认",
+        "ageFrom": 4.4,
+        "ageTo": 24.4,
+        "ageDesc": "第 1–2 步大运",
+        "surface": {
+          "gan": "癸",
+          "zhi": "亥",
+          "shiShenGan": "偏印",
+          "ganWuXing": "水",
+          "zhiWuXing": "水"
+        },
+        "deep": {
+          "hideGan": [
+            {
+              "gan": "壬",
+              "kind": "本气",
+              "weight": 0.7,
+              "wuXing": "水",
+              "shiShen": "正印"
+            },
+            {
+              "gan": "甲",
+              "kind": "中气",
+              "weight": 0.3,
+              "wuXing": "木",
+              "shiShen": "劫财"
+            }
+          ],
+          "changSheng": "死",
+          "diShi": "死",
+          "shiShenZhi": [
+            "正印",
+            "劫财"
+          ]
+        }
+      },
+      "day": {
+        "label": "日",
+        "ganZhi": "乙亥",
+        "palace": "配偶宫",
+        "also": [
+          "自身"
+        ],
+        "note": "日干=自己，日支=配偶",
+        "ageFrom": 24.4,
+        "ageTo": 44.4,
+        "ageDesc": "第 3–4 步大运",
+        "surface": {
+          "gan": "乙",
+          "zhi": "亥",
+          "shiShenGan": "日主",
+          "ganWuXing": "木",
+          "zhiWuXing": "水"
+        },
+        "deep": {
+          "hideGan": [
+            {
+              "gan": "壬",
+              "kind": "本气",
+              "weight": 0.7,
+              "wuXing": "水",
+              "shiShen": "正印"
+            },
+            {
+              "gan": "甲",
+              "kind": "中气",
+              "weight": 0.3,
+              "wuXing": "木",
+              "shiShen": "劫财"
+            }
+          ],
+          "changSheng": "死",
+          "diShi": "死",
+          "shiShenZhi": [
+            "正印",
+            "劫财"
+          ]
+        }
+      },
+      "hour": {
+        "label": "时",
+        "ganZhi": "辛巳",
+        "palace": "子女宫",
+        "also": [
+          "晚年",
+          "事业终局"
+        ],
+        "note": "",
+        "ageFrom": 44.4,
+        "ageTo": null,
+        "ageDesc": "之后",
+        "surface": {
+          "gan": "辛",
+          "zhi": "巳",
+          "shiShenGan": "七杀",
+          "ganWuXing": "金",
+          "zhiWuXing": "火"
+        },
+        "deep": {
+          "hideGan": [
+            {
+              "gan": "丙",
+              "kind": "本气",
+              "weight": 0.6,
+              "wuXing": "火",
+              "shiShen": "伤官"
+            },
+            {
+              "gan": "庚",
+              "kind": "中气",
+              "weight": 0.3,
+              "wuXing": "金",
+              "shiShen": "正官"
+            },
+            {
+              "gan": "戊",
+              "kind": "余气",
+              "weight": 0.1,
+              "wuXing": "土",
+              "shiShen": "正财"
+            }
+          ],
+          "changSheng": "沐浴",
+          "diShi": "沐浴",
+          "shiShenZhi": [
+            "伤官",
+            "正官",
+            "正财"
+          ]
+        }
+      }
+    },
+    "ageBands": [
+      {
+        "pillar": "year",
+        "label": "年柱",
+        "from": 0,
+        "to": 4.4,
+        "desc": "起运前"
+      },
+      {
+        "pillar": "month",
+        "label": "月柱",
+        "from": 4.4,
+        "to": 24.4,
+        "desc": "第 1–2 步大运"
+      },
+      {
+        "pillar": "day",
+        "label": "日柱",
+        "from": 24.4,
+        "to": 44.4,
+        "desc": "第 3–4 步大运"
+      },
+      {
+        "pillar": "hour",
+        "label": "时柱",
+        "from": 44.4,
+        "to": null,
+        "desc": "之后"
+      }
+    ],
+    "kinByShiShen": [
+      {
+        "roles": "母亲",
+        "viaShiShen": [
+          "正印"
+        ],
+        "at": [
+          "月支藏壬",
+          "日支藏壬"
+        ],
+        "strength": 1.4,
+        "tone": "滋养"
+      },
+      {
+        "roles": "老师",
+        "viaShiShen": [
+          "正印"
+        ],
+        "at": [
+          "月支藏壬",
+          "日支藏壬"
+        ],
+        "strength": 1.4,
+        "tone": "滋养"
+      },
+      {
+        "roles": "庇护者",
+        "viaShiShen": [
+          "正印"
+        ],
+        "at": [
+          "月支藏壬",
+          "日支藏壬"
+        ],
+        "strength": 1.4,
+        "tone": "滋养"
+      },
+      {
+        "roles": "妻子",
+        "viaShiShen": [
+          "正财"
+        ],
+        "at": [
+          "年干",
+          "年支藏戊",
+          "时支藏戊"
+        ],
+        "strength": 1.2,
+        "tone": "所得"
+      },
+      {
+        "roles": "稳定收入",
+        "viaShiShen": [
+          "正财"
+        ],
+        "at": [
+          "年干",
+          "年支藏戊",
+          "时支藏戊"
+        ],
+        "strength": 1.2,
+        "tone": "所得"
+      },
+      {
+        "roles": "同辈竞争者",
+        "viaShiShen": [
+          "劫财"
+        ],
+        "at": [
+          "年支藏甲",
+          "月支藏甲",
+          "日支藏甲"
+        ],
+        "strength": 1.2,
+        "tone": "同盟带摩擦"
+      },
+      {
+        "roles": "不太省心的朋友",
+        "viaShiShen": [
+          "劫财"
+        ],
+        "at": [
+          "年支藏甲",
+          "月支藏甲",
+          "日支藏甲"
+        ],
+        "strength": 1.2,
+        "tone": "同盟带摩擦"
+      },
+      {
+        "roles": "合伙人",
+        "viaShiShen": [
+          "劫财"
+        ],
+        "at": [
+          "年支藏甲",
+          "月支藏甲",
+          "日支藏甲"
+        ],
+        "strength": 1.2,
+        "tone": "同盟带摩擦"
+      },
+      {
+        "roles": "继母/偏门长辈",
+        "viaShiShen": [
+          "偏印"
+        ],
+        "at": [
+          "月干"
+        ],
+        "strength": 1,
+        "tone": "滋养带疏离"
+      },
+      {
+        "roles": "偏才的师承",
+        "viaShiShen": [
+          "偏印"
+        ],
+        "at": [
+          "月干"
+        ],
+        "strength": 1,
+        "tone": "滋养带疏离"
+      },
+      {
+        "roles": "儿子",
+        "viaShiShen": [
+          "七杀"
+        ],
+        "at": [
+          "时干"
+        ],
+        "strength": 1,
+        "tone": "约束带压迫"
+      },
+      {
+        "roles": "严厉的上级",
+        "viaShiShen": [
+          "七杀"
+        ],
+        "at": [
+          "时干"
+        ],
+        "strength": 1,
+        "tone": "约束带压迫"
+      },
+      {
+        "roles": "晚辈",
+        "viaShiShen": [
+          "伤官"
+        ],
+        "at": [
+          "年支藏丙",
+          "时支藏丙"
+        ],
+        "strength": 0.9,
+        "tone": "产出带锋芒"
+      },
+      {
+        "roles": "作品",
+        "viaShiShen": [
+          "伤官"
+        ],
+        "at": [
+          "年支藏丙",
+          "时支藏丙"
+        ],
+        "strength": 0.9,
+        "tone": "产出带锋芒"
+      },
+      {
+        "roles": "女儿",
+        "viaShiShen": [
+          "正官"
+        ],
+        "at": [
+          "时支藏庚"
+        ],
+        "strength": 0.3,
+        "tone": "约束"
+      },
+      {
+        "roles": "上司",
+        "viaShiShen": [
+          "正官"
+        ],
+        "at": [
+          "时支藏庚"
+        ],
+        "strength": 0.3,
+        "tone": "约束"
+      }
+    ],
+    "shiShenWeight": {
+      "正财": 1.2,
+      "劫财": 1.2,
+      "伤官": 0.9,
+      "偏印": 1,
+      "正印": 1.4,
+      "七杀": 1,
+      "正官": 0.3
+    },
+    "config": {
+      "stepsPerPillar": 2,
+      "qiYunAge": 4.42
+    }
+  },
+  "qiYun": {
+    "text": "4年5月0日后起运",
+    "startSolar": "2003-04-24",
+    "forward": true
+  },
+  "daYun": [
+    {
+      "index": 0,
+      "ganZhi": "(起运前)",
+      "startYear": 1998,
+      "endYear": 2002,
+      "startAge": 1,
+      "endAge": 5,
+      "liuNian": [
+        {
+          "year": 1998,
+          "age": 1,
+          "ganZhi": "戊寅",
+          "shiShenGan": "正财",
+          "ganWuXing": "土",
+          "zhiWuXing": "木"
+        },
+        {
+          "year": 1999,
+          "age": 2,
+          "ganZhi": "己卯",
+          "shiShenGan": "偏财",
+          "ganWuXing": "土",
+          "zhiWuXing": "木"
+        },
+        {
+          "year": 2000,
+          "age": 3,
+          "ganZhi": "庚辰",
+          "shiShenGan": "正官",
+          "ganWuXing": "金",
+          "zhiWuXing": "土"
+        },
+        {
+          "year": 2001,
+          "age": 4,
+          "ganZhi": "辛巳",
+          "shiShenGan": "七杀",
+          "ganWuXing": "金",
+          "zhiWuXing": "火"
+        },
+        {
+          "year": 2002,
+          "age": 5,
+          "ganZhi": "壬午",
+          "shiShenGan": "正印",
+          "ganWuXing": "水",
+          "zhiWuXing": "火"
+        }
+      ]
+    },
+    {
+      "index": 1,
+      "ganZhi": "甲子",
+      "startYear": 2003,
+      "endYear": 2012,
+      "startAge": 6,
+      "endAge": 15,
+      "gan": "甲",
+      "zhi": "子",
+      "ganWuXing": "木",
+      "zhiWuXing": "水",
+      "shiShenGan": "劫财",
+      "changSheng": "病",
+      "hideGan": [
+        {
+          "gan": "癸",
+          "kind": "本气",
+          "shiShen": "偏印"
+        }
+      ],
+      "liuNian": [
+        {
+          "year": 2003,
+          "age": 6,
+          "ganZhi": "癸未",
+          "shiShenGan": "偏印",
+          "ganWuXing": "水",
+          "zhiWuXing": "土"
+        },
+        {
+          "year": 2004,
+          "age": 7,
+          "ganZhi": "甲申",
+          "shiShenGan": "劫财",
+          "ganWuXing": "木",
+          "zhiWuXing": "金"
+        },
+        {
+          "year": 2005,
+          "age": 8,
+          "ganZhi": "乙酉",
+          "shiShenGan": "比肩",
+          "ganWuXing": "木",
+          "zhiWuXing": "金"
+        },
+        {
+          "year": 2006,
+          "age": 9,
+          "ganZhi": "丙戌",
+          "shiShenGan": "伤官",
+          "ganWuXing": "火",
+          "zhiWuXing": "土"
+        },
+        {
+          "year": 2007,
+          "age": 10,
+          "ganZhi": "丁亥",
+          "shiShenGan": "食神",
+          "ganWuXing": "火",
+          "zhiWuXing": "水"
+        },
+        {
+          "year": 2008,
+          "age": 11,
+          "ganZhi": "戊子",
+          "shiShenGan": "正财",
+          "ganWuXing": "土",
+          "zhiWuXing": "水"
+        },
+        {
+          "year": 2009,
+          "age": 12,
+          "ganZhi": "己丑",
+          "shiShenGan": "偏财",
+          "ganWuXing": "土",
+          "zhiWuXing": "土"
+        },
+        {
+          "year": 2010,
+          "age": 13,
+          "ganZhi": "庚寅",
+          "shiShenGan": "正官",
+          "ganWuXing": "金",
+          "zhiWuXing": "木"
+        },
+        {
+          "year": 2011,
+          "age": 14,
+          "ganZhi": "辛卯",
+          "shiShenGan": "七杀",
+          "ganWuXing": "金",
+          "zhiWuXing": "木"
+        },
+        {
+          "year": 2012,
+          "age": 15,
+          "ganZhi": "壬辰",
+          "shiShenGan": "正印",
+          "ganWuXing": "水",
+          "zhiWuXing": "土"
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "ganZhi": "乙丑",
+      "startYear": 2013,
+      "endYear": 2022,
+      "startAge": 16,
+      "endAge": 25,
+      "gan": "乙",
+      "zhi": "丑",
+      "ganWuXing": "木",
+      "zhiWuXing": "土",
+      "shiShenGan": "比肩",
+      "changSheng": "衰",
+      "hideGan": [
+        {
+          "gan": "己",
+          "kind": "本气",
+          "shiShen": "偏财"
+        },
+        {
+          "gan": "癸",
+          "kind": "中气",
+          "shiShen": "偏印"
+        },
+        {
+          "gan": "辛",
+          "kind": "余气",
+          "shiShen": "七杀"
+        }
+      ],
+      "liuNian": [
+        {
+          "year": 2013,
+          "age": 16,
+          "ganZhi": "癸巳",
+          "shiShenGan": "偏印",
+          "ganWuXing": "水",
+          "zhiWuXing": "火"
+        },
+        {
+          "year": 2014,
+          "age": 17,
+          "ganZhi": "甲午",
+          "shiShenGan": "劫财",
+          "ganWuXing": "木",
+          "zhiWuXing": "火"
+        },
+        {
+          "year": 2015,
+          "age": 18,
+          "ganZhi": "乙未",
+          "shiShenGan": "比肩",
+          "ganWuXing": "木",
+          "zhiWuXing": "土"
+        },
+        {
+          "year": 2016,
+          "age": 19,
+          "ganZhi": "丙申",
+          "shiShenGan": "伤官",
+          "ganWuXing": "火",
+          "zhiWuXing": "金"
+        },
+        {
+          "year": 2017,
+          "age": 20,
+          "ganZhi": "丁酉",
+          "shiShenGan": "食神",
+          "ganWuXing": "火",
+          "zhiWuXing": "金"
+        },
+        {
+          "year": 2018,
+          "age": 21,
+          "ganZhi": "戊戌",
+          "shiShenGan": "正财",
+          "ganWuXing": "土",
+          "zhiWuXing": "土"
+        },
+        {
+          "year": 2019,
+          "age": 22,
+          "ganZhi": "己亥",
+          "shiShenGan": "偏财",
+          "ganWuXing": "土",
+          "zhiWuXing": "水"
+        },
+        {
+          "year": 2020,
+          "age": 23,
+          "ganZhi": "庚子",
+          "shiShenGan": "正官",
+          "ganWuXing": "金",
+          "zhiWuXing": "水"
+        },
+        {
+          "year": 2021,
+          "age": 24,
+          "ganZhi": "辛丑",
+          "shiShenGan": "七杀",
+          "ganWuXing": "金",
+          "zhiWuXing": "土"
+        },
+        {
+          "year": 2022,
+          "age": 25,
+          "ganZhi": "壬寅",
+          "shiShenGan": "正印",
+          "ganWuXing": "水",
+          "zhiWuXing": "木"
+        }
+      ]
+    },
+    {
+      "index": 3,
+      "ganZhi": "丙寅",
+      "startYear": 2023,
+      "endYear": 2032,
+      "startAge": 26,
+      "endAge": 35,
+      "gan": "丙",
+      "zhi": "寅",
+      "ganWuXing": "火",
+      "zhiWuXing": "木",
+      "shiShenGan": "伤官",
+      "changSheng": "帝旺",
+      "hideGan": [
+        {
+          "gan": "甲",
+          "kind": "本气",
+          "shiShen": "劫财"
+        },
+        {
+          "gan": "丙",
+          "kind": "中气",
+          "shiShen": "伤官"
+        },
+        {
+          "gan": "戊",
+          "kind": "余气",
+          "shiShen": "正财"
+        }
+      ],
+      "liuNian": [
+        {
+          "year": 2023,
+          "age": 26,
+          "ganZhi": "癸卯",
+          "shiShenGan": "偏印",
+          "ganWuXing": "水",
+          "zhiWuXing": "木"
+        },
+        {
+          "year": 2024,
+          "age": 27,
+          "ganZhi": "甲辰",
+          "shiShenGan": "劫财",
+          "ganWuXing": "木",
+          "zhiWuXing": "土"
+        },
+        {
+          "year": 2025,
+          "age": 28,
+          "ganZhi": "乙巳",
+          "shiShenGan": "比肩",
+          "ganWuXing": "木",
+          "zhiWuXing": "火"
+        },
+        {
+          "year": 2026,
+          "age": 29,
+          "ganZhi": "丙午",
+          "shiShenGan": "伤官",
+          "ganWuXing": "火",
+          "zhiWuXing": "火"
+        },
+        {
+          "year": 2027,
+          "age": 30,
+          "ganZhi": "丁未",
+          "shiShenGan": "食神",
+          "ganWuXing": "火",
+          "zhiWuXing": "土"
+        },
+        {
+          "year": 2028,
+          "age": 31,
+          "ganZhi": "戊申",
+          "shiShenGan": "正财",
+          "ganWuXing": "土",
+          "zhiWuXing": "金"
+        },
+        {
+          "year": 2029,
+          "age": 32,
+          "ganZhi": "己酉",
+          "shiShenGan": "偏财",
+          "ganWuXing": "土",
+          "zhiWuXing": "金"
+        },
+        {
+          "year": 2030,
+          "age": 33,
+          "ganZhi": "庚戌",
+          "shiShenGan": "正官",
+          "ganWuXing": "金",
+          "zhiWuXing": "土"
+        },
+        {
+          "year": 2031,
+          "age": 34,
+          "ganZhi": "辛亥",
+          "shiShenGan": "七杀",
+          "ganWuXing": "金",
+          "zhiWuXing": "水"
+        },
+        {
+          "year": 2032,
+          "age": 35,
+          "ganZhi": "壬子",
+          "shiShenGan": "正印",
+          "ganWuXing": "水",
+          "zhiWuXing": "水"
+        }
+      ]
+    },
+    {
+      "index": 4,
+      "ganZhi": "丁卯",
+      "startYear": 2033,
+      "endYear": 2042,
+      "startAge": 36,
+      "endAge": 45,
+      "gan": "丁",
+      "zhi": "卯",
+      "ganWuXing": "火",
+      "zhiWuXing": "木",
+      "shiShenGan": "食神",
+      "changSheng": "临官",
+      "hideGan": [
+        {
+          "gan": "乙",
+          "kind": "本气",
+          "shiShen": "比肩"
+        }
+      ],
+      "liuNian": [
+        {
+          "year": 2033,
+          "age": 36,
+          "ganZhi": "癸丑",
+          "shiShenGan": "偏印",
+          "ganWuXing": "水",
+          "zhiWuXing": "土"
+        },
+        {
+          "year": 2034,
+          "age": 37,
+          "ganZhi": "甲寅",
+          "shiShenGan": "劫财",
+          "ganWuXing": "木",
+          "zhiWuXing": "木"
+        },
+        {
+          "year": 2035,
+          "age": 38,
+          "ganZhi": "乙卯",
+          "shiShenGan": "比肩",
+          "ganWuXing": "木",
+          "zhiWuXing": "木"
+        },
+        {
+          "year": 2036,
+          "age": 39,
+          "ganZhi": "丙辰",
+          "shiShenGan": "伤官",
+          "ganWuXing": "火",
+          "zhiWuXing": "土"
+        },
+        {
+          "year": 2037,
+          "age": 40,
+          "ganZhi": "丁巳",
+          "shiShenGan": "食神",
+          "ganWuXing": "火",
+          "zhiWuXing": "火"
+        },
+        {
+          "year": 2038,
+          "age": 41,
+          "ganZhi": "戊午",
+          "shiShenGan": "正财",
+          "ganWuXing": "土",
+          "zhiWuXing": "火"
+        },
+        {
+          "year": 2039,
+          "age": 42,
+          "ganZhi": "己未",
+          "shiShenGan": "偏财",
+          "ganWuXing": "土",
+          "zhiWuXing": "土"
+        },
+        {
+          "year": 2040,
+          "age": 43,
+          "ganZhi": "庚申",
+          "shiShenGan": "正官",
+          "ganWuXing": "金",
+          "zhiWuXing": "金"
+        },
+        {
+          "year": 2041,
+          "age": 44,
+          "ganZhi": "辛酉",
+          "shiShenGan": "七杀",
+          "ganWuXing": "金",
+          "zhiWuXing": "金"
+        },
+        {
+          "year": 2042,
+          "age": 45,
+          "ganZhi": "壬戌",
+          "shiShenGan": "正印",
+          "ganWuXing": "水",
+          "zhiWuXing": "土"
+        }
+      ]
+    },
+    {
+      "index": 5,
+      "ganZhi": "戊辰",
+      "startYear": 2043,
+      "endYear": 2052,
+      "startAge": 46,
+      "endAge": 55,
+      "gan": "戊",
+      "zhi": "辰",
+      "ganWuXing": "土",
+      "zhiWuXing": "土",
+      "shiShenGan": "正财",
+      "changSheng": "冠带",
+      "hideGan": [
+        {
+          "gan": "戊",
+          "kind": "本气",
+          "shiShen": "正财"
+        },
+        {
+          "gan": "乙",
+          "kind": "中气",
+          "shiShen": "比肩"
+        },
+        {
+          "gan": "癸",
+          "kind": "余气",
+          "shiShen": "偏印"
+        }
+      ],
+      "liuNian": [
+        {
+          "year": 2043,
+          "age": 46,
+          "ganZhi": "癸亥",
+          "shiShenGan": "偏印",
+          "ganWuXing": "水",
+          "zhiWuXing": "水"
+        },
+        {
+          "year": 2044,
+          "age": 47,
+          "ganZhi": "甲子",
+          "shiShenGan": "劫财",
+          "ganWuXing": "木",
+          "zhiWuXing": "水"
+        },
+        {
+          "year": 2045,
+          "age": 48,
+          "ganZhi": "乙丑",
+          "shiShenGan": "比肩",
+          "ganWuXing": "木",
+          "zhiWuXing": "土"
+        },
+        {
+          "year": 2046,
+          "age": 49,
+          "ganZhi": "丙寅",
+          "shiShenGan": "伤官",
+          "ganWuXing": "火",
+          "zhiWuXing": "木"
+        },
+        {
+          "year": 2047,
+          "age": 50,
+          "ganZhi": "丁卯",
+          "shiShenGan": "食神",
+          "ganWuXing": "火",
+          "zhiWuXing": "木"
+        },
+        {
+          "year": 2048,
+          "age": 51,
+          "ganZhi": "戊辰",
+          "shiShenGan": "正财",
+          "ganWuXing": "土",
+          "zhiWuXing": "土"
+        },
+        {
+          "year": 2049,
+          "age": 52,
+          "ganZhi": "己巳",
+          "shiShenGan": "偏财",
+          "ganWuXing": "土",
+          "zhiWuXing": "火"
+        },
+        {
+          "year": 2050,
+          "age": 53,
+          "ganZhi": "庚午",
+          "shiShenGan": "正官",
+          "ganWuXing": "金",
+          "zhiWuXing": "火"
+        },
+        {
+          "year": 2051,
+          "age": 54,
+          "ganZhi": "辛未",
+          "shiShenGan": "七杀",
+          "ganWuXing": "金",
+          "zhiWuXing": "土"
+        },
+        {
+          "year": 2052,
+          "age": 55,
+          "ganZhi": "壬申",
+          "shiShenGan": "正印",
+          "ganWuXing": "水",
+          "zhiWuXing": "金"
+        }
+      ]
+    },
+    {
+      "index": 6,
+      "ganZhi": "己巳",
+      "startYear": 2053,
+      "endYear": 2062,
+      "startAge": 56,
+      "endAge": 65,
+      "gan": "己",
+      "zhi": "巳",
+      "ganWuXing": "土",
+      "zhiWuXing": "火",
+      "shiShenGan": "偏财",
+      "changSheng": "沐浴",
+      "hideGan": [
+        {
+          "gan": "丙",
+          "kind": "本气",
+          "shiShen": "伤官"
+        },
+        {
+          "gan": "庚",
+          "kind": "中气",
+          "shiShen": "正官"
+        },
+        {
+          "gan": "戊",
+          "kind": "余气",
+          "shiShen": "正财"
+        }
+      ],
+      "liuNian": [
+        {
+          "year": 2053,
+          "age": 56,
+          "ganZhi": "癸酉",
+          "shiShenGan": "偏印",
+          "ganWuXing": "水",
+          "zhiWuXing": "金"
+        },
+        {
+          "year": 2054,
+          "age": 57,
+          "ganZhi": "甲戌",
+          "shiShenGan": "劫财",
+          "ganWuXing": "木",
+          "zhiWuXing": "土"
+        },
+        {
+          "year": 2055,
+          "age": 58,
+          "ganZhi": "乙亥",
+          "shiShenGan": "比肩",
+          "ganWuXing": "木",
+          "zhiWuXing": "水"
+        },
+        {
+          "year": 2056,
+          "age": 59,
+          "ganZhi": "丙子",
+          "shiShenGan": "伤官",
+          "ganWuXing": "火",
+          "zhiWuXing": "水"
+        },
+        {
+          "year": 2057,
+          "age": 60,
+          "ganZhi": "丁丑",
+          "shiShenGan": "食神",
+          "ganWuXing": "火",
+          "zhiWuXing": "土"
+        },
+        {
+          "year": 2058,
+          "age": 61,
+          "ganZhi": "戊寅",
+          "shiShenGan": "正财",
+          "ganWuXing": "土",
+          "zhiWuXing": "木"
+        },
+        {
+          "year": 2059,
+          "age": 62,
+          "ganZhi": "己卯",
+          "shiShenGan": "偏财",
+          "ganWuXing": "土",
+          "zhiWuXing": "木"
+        },
+        {
+          "year": 2060,
+          "age": 63,
+          "ganZhi": "庚辰",
+          "shiShenGan": "正官",
+          "ganWuXing": "金",
+          "zhiWuXing": "土"
+        },
+        {
+          "year": 2061,
+          "age": 64,
+          "ganZhi": "辛巳",
+          "shiShenGan": "七杀",
+          "ganWuXing": "金",
+          "zhiWuXing": "火"
+        },
+        {
+          "year": 2062,
+          "age": 65,
+          "ganZhi": "壬午",
+          "shiShenGan": "正印",
+          "ganWuXing": "水",
+          "zhiWuXing": "火"
+        }
+      ]
+    },
+    {
+      "index": 7,
+      "ganZhi": "庚午",
+      "startYear": 2063,
+      "endYear": 2072,
+      "startAge": 66,
+      "endAge": 75,
+      "gan": "庚",
+      "zhi": "午",
+      "ganWuXing": "金",
+      "zhiWuXing": "火",
+      "shiShenGan": "正官",
+      "changSheng": "长生",
+      "hideGan": [
+        {
+          "gan": "丁",
+          "kind": "本气",
+          "shiShen": "食神"
+        },
+        {
+          "gan": "己",
+          "kind": "中气",
+          "shiShen": "偏财"
+        }
+      ],
+      "liuNian": [
+        {
+          "year": 2063,
+          "age": 66,
+          "ganZhi": "癸未",
+          "shiShenGan": "偏印",
+          "ganWuXing": "水",
+          "zhiWuXing": "土"
+        },
+        {
+          "year": 2064,
+          "age": 67,
+          "ganZhi": "甲申",
+          "shiShenGan": "劫财",
+          "ganWuXing": "木",
+          "zhiWuXing": "金"
+        },
+        {
+          "year": 2065,
+          "age": 68,
+          "ganZhi": "乙酉",
+          "shiShenGan": "比肩",
+          "ganWuXing": "木",
+          "zhiWuXing": "金"
+        },
+        {
+          "year": 2066,
+          "age": 69,
+          "ganZhi": "丙戌",
+          "shiShenGan": "伤官",
+          "ganWuXing": "火",
+          "zhiWuXing": "土"
+        },
+        {
+          "year": 2067,
+          "age": 70,
+          "ganZhi": "丁亥",
+          "shiShenGan": "食神",
+          "ganWuXing": "火",
+          "zhiWuXing": "水"
+        },
+        {
+          "year": 2068,
+          "age": 71,
+          "ganZhi": "戊子",
+          "shiShenGan": "正财",
+          "ganWuXing": "土",
+          "zhiWuXing": "水"
+        },
+        {
+          "year": 2069,
+          "age": 72,
+          "ganZhi": "己丑",
+          "shiShenGan": "偏财",
+          "ganWuXing": "土",
+          "zhiWuXing": "土"
+        },
+        {
+          "year": 2070,
+          "age": 73,
+          "ganZhi": "庚寅",
+          "shiShenGan": "正官",
+          "ganWuXing": "金",
+          "zhiWuXing": "木"
+        },
+        {
+          "year": 2071,
+          "age": 74,
+          "ganZhi": "辛卯",
+          "shiShenGan": "七杀",
+          "ganWuXing": "金",
+          "zhiWuXing": "木"
+        },
+        {
+          "year": 2072,
+          "age": 75,
+          "ganZhi": "壬辰",
+          "shiShenGan": "正印",
+          "ganWuXing": "水",
+          "zhiWuXing": "土"
+        }
+      ]
+    },
+    {
+      "index": 8,
+      "ganZhi": "辛未",
+      "startYear": 2073,
+      "endYear": 2082,
+      "startAge": 76,
+      "endAge": 85,
+      "gan": "辛",
+      "zhi": "未",
+      "ganWuXing": "金",
+      "zhiWuXing": "土",
+      "shiShenGan": "七杀",
+      "changSheng": "养",
+      "hideGan": [
+        {
+          "gan": "己",
+          "kind": "本气",
+          "shiShen": "偏财"
+        },
+        {
+          "gan": "丁",
+          "kind": "中气",
+          "shiShen": "食神"
+        },
+        {
+          "gan": "乙",
+          "kind": "余气",
+          "shiShen": "比肩"
+        }
+      ],
+      "liuNian": [
+        {
+          "year": 2073,
+          "age": 76,
+          "ganZhi": "癸巳",
+          "shiShenGan": "偏印",
+          "ganWuXing": "水",
+          "zhiWuXing": "火"
+        },
+        {
+          "year": 2074,
+          "age": 77,
+          "ganZhi": "甲午",
+          "shiShenGan": "劫财",
+          "ganWuXing": "木",
+          "zhiWuXing": "火"
+        },
+        {
+          "year": 2075,
+          "age": 78,
+          "ganZhi": "乙未",
+          "shiShenGan": "比肩",
+          "ganWuXing": "木",
+          "zhiWuXing": "土"
+        },
+        {
+          "year": 2076,
+          "age": 79,
+          "ganZhi": "丙申",
+          "shiShenGan": "伤官",
+          "ganWuXing": "火",
+          "zhiWuXing": "金"
+        },
+        {
+          "year": 2077,
+          "age": 80,
+          "ganZhi": "丁酉",
+          "shiShenGan": "食神",
+          "ganWuXing": "火",
+          "zhiWuXing": "金"
+        },
+        {
+          "year": 2078,
+          "age": 81,
+          "ganZhi": "戊戌",
+          "shiShenGan": "正财",
+          "ganWuXing": "土",
+          "zhiWuXing": "土"
+        },
+        {
+          "year": 2079,
+          "age": 82,
+          "ganZhi": "己亥",
+          "shiShenGan": "偏财",
+          "ganWuXing": "土",
+          "zhiWuXing": "水"
+        },
+        {
+          "year": 2080,
+          "age": 83,
+          "ganZhi": "庚子",
+          "shiShenGan": "正官",
+          "ganWuXing": "金",
+          "zhiWuXing": "水"
+        },
+        {
+          "year": 2081,
+          "age": 84,
+          "ganZhi": "辛丑",
+          "shiShenGan": "七杀",
+          "ganWuXing": "金",
+          "zhiWuXing": "土"
+        },
+        {
+          "year": 2082,
+          "age": 85,
+          "ganZhi": "壬寅",
+          "shiShenGan": "正印",
+          "ganWuXing": "水",
+          "zhiWuXing": "木"
+        }
+      ]
+    },
+    {
+      "index": 9,
+      "ganZhi": "壬申",
+      "startYear": 2083,
+      "endYear": 2092,
+      "startAge": 86,
+      "endAge": 95,
+      "gan": "壬",
+      "zhi": "申",
+      "ganWuXing": "水",
+      "zhiWuXing": "金",
+      "shiShenGan": "正印",
+      "changSheng": "胎",
+      "hideGan": [
+        {
+          "gan": "庚",
+          "kind": "本气",
+          "shiShen": "正官"
+        },
+        {
+          "gan": "壬",
+          "kind": "中气",
+          "shiShen": "正印"
+        },
+        {
+          "gan": "戊",
+          "kind": "余气",
+          "shiShen": "正财"
+        }
+      ],
+      "liuNian": [
+        {
+          "year": 2083,
+          "age": 86,
+          "ganZhi": "癸卯",
+          "shiShenGan": "偏印",
+          "ganWuXing": "水",
+          "zhiWuXing": "木"
+        },
+        {
+          "year": 2084,
+          "age": 87,
+          "ganZhi": "甲辰",
+          "shiShenGan": "劫财",
+          "ganWuXing": "木",
+          "zhiWuXing": "土"
+        },
+        {
+          "year": 2085,
+          "age": 88,
+          "ganZhi": "乙巳",
+          "shiShenGan": "比肩",
+          "ganWuXing": "木",
+          "zhiWuXing": "火"
+        },
+        {
+          "year": 2086,
+          "age": 89,
+          "ganZhi": "丙午",
+          "shiShenGan": "伤官",
+          "ganWuXing": "火",
+          "zhiWuXing": "火"
+        },
+        {
+          "year": 2087,
+          "age": 90,
+          "ganZhi": "丁未",
+          "shiShenGan": "食神",
+          "ganWuXing": "火",
+          "zhiWuXing": "土"
+        },
+        {
+          "year": 2088,
+          "age": 91,
+          "ganZhi": "戊申",
+          "shiShenGan": "正财",
+          "ganWuXing": "土",
+          "zhiWuXing": "金"
+        },
+        {
+          "year": 2089,
+          "age": 92,
+          "ganZhi": "己酉",
+          "shiShenGan": "偏财",
+          "ganWuXing": "土",
+          "zhiWuXing": "金"
+        },
+        {
+          "year": 2090,
+          "age": 93,
+          "ganZhi": "庚戌",
+          "shiShenGan": "正官",
+          "ganWuXing": "金",
+          "zhiWuXing": "土"
+        },
+        {
+          "year": 2091,
+          "age": 94,
+          "ganZhi": "辛亥",
+          "shiShenGan": "七杀",
+          "ganWuXing": "金",
+          "zhiWuXing": "水"
+        },
+        {
+          "year": 2092,
+          "age": 95,
+          "ganZhi": "壬子",
+          "shiShenGan": "正印",
+          "ganWuXing": "水",
+          "zhiWuXing": "水"
+        }
+      ]
+    }
+  ]
+}

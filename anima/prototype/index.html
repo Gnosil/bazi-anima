@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>bazi-anima 原型 · 结论演化史</title>
+<style>
+@font-face{font-family:'Zpix';src:url('__FONT_URL__') format('woff2');font-display:swap}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#0E0B14}
+body{font-family:'Zpix','MS Gothic',monospace;color:#C6BCE6;font-size:12px;line-height:1.5;
+  -webkit-font-smoothing:none;padding:16px}
+canvas{image-rendering:pixelated;display:block}
+.wrap{max-width:1180px;margin:0 auto}
+h1{font-size:24px;color:#F2EDFF;line-height:1;letter-spacing:2px}
+.sub{color:#8579B0;margin:8px 0 16px}
+.panel{background:#171226;border:2px solid #443A6B;padding:12px}
+.cols{display:grid;grid-template-columns:340px 1fr;gap:12px;align-items:start}
+.h3{color:#F5C542;margin-bottom:8px;letter-spacing:1px}
+.dim{color:#8579B0}
+.hi{color:#F2EDFF}
+
+/* 四柱 */
+.pillars{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.pil{border:2px solid;background:#0E0B14;text-align:center;cursor:pointer}
+.pil .hd{background:#241C3D;color:#8579B0;padding:2px}
+.pil .gz{font-size:24px;line-height:1.3;padding:4px 0}
+.pil .ft{border-top:2px solid #443A6B;padding:2px}
+.pil.lit{box-shadow:0 0 0 3px #F5C542}
+
+/* 血条 */
+.barRow{display:grid;grid-template-columns:24px 1fr 40px;gap:6px;align-items:center;margin-bottom:4px;cursor:pointer}
+.bar{height:12px;background:#0E0B14;border:2px solid #443A6B}
+.bar>i{display:block;height:100%}
+.barRow.lit .bar{border-color:#F5C542}
+
+/* 技能 */
+.skills{display:flex;gap:4px;flex-wrap:wrap}
+.sk{width:36px;height:36px;border:2px solid;display:flex;align-items:center;justify-content:center;
+  background:#0E0B14;position:relative;cursor:pointer}
+.sk b{font-size:12px}
+.sk span{position:absolute;right:1px;bottom:-2px;color:#8579B0}
+.sk.lit{box-shadow:0 0 0 3px #F5C542}
+
+/* buff */
+.buffs{display:flex;gap:4px;flex-wrap:wrap}
+.bf{border:2px solid;padding:2px 5px;cursor:pointer;background:#0E0B14}
+.bf.lit{box-shadow:0 0 0 3px #F5C542}
+
+/* 纵轴：推理层 */
+.layers{display:flex;gap:0;align-items:stretch;margin-bottom:12px}
+.ly{flex:1;border:2px solid #443A6B;background:#171226;padding:8px;cursor:pointer;text-align:center;
+  transition:background 160ms steps(4,end)}
+.ly+.ly{border-left:0}
+.ly:hover{background:#241C3D}
+.ly.on{background:#33285A;border-color:#F5C542;position:relative;z-index:1}
+.ly b{font-size:24px;line-height:1;display:block;color:#8579B0}
+.ly.on b{color:#F5C542}
+.ly.done b{color:#5CE1A0}
+.ly i{font-style:normal;color:#8579B0;font-size:12px}
+
+/* 解读 */
+.sec{margin-bottom:14px}
+.sec>.t{color:#F5C542;border-bottom:2px solid #443A6B;padding-bottom:2px;margin-bottom:6px}
+.claim{border-left:4px solid #443A6B;padding:2px 0 2px 8px;margin-bottom:6px;cursor:pointer}
+.claim:hover{background:#1F1832}
+.claim .k{color:#8579B0}
+.claim .c{color:#C6BCE6}
+.claim.changed{border-left-color:#F5C542;background:#241C3D}
+.claim.changed .c{color:#F2EDFF}
+.claim .ev{color:#5A4E80;font-size:12px;display:none}
+.claim.open .ev{display:block;margin-top:4px}
+.tag{border:2px solid #443A6B;padding:0 4px;color:#8579B0;margin-left:4px}
+
+/* diff 面板 */
+.diff{border:2px solid #F5C542;background:#1C1526;padding:8px;margin-bottom:12px}
+.diff .row{margin-bottom:8px}
+.diff .row:last-child{margin-bottom:0}
+.from{color:#8579B0;text-decoration:line-through}
+.to{color:#F2EDFF}
+.why{color:#5CE1C4}
+.conf{border:2px solid #FF5C6E;background:#241318;padding:8px;margin-bottom:12px}
+
+/* 横轴 */
+.map{display:flex;align-items:center;overflow-x:auto;padding:8px 0}
+.node{flex:0 0 auto;width:58px;text-align:center;cursor:pointer}
+.node .dot{width:28px;height:28px;margin:0 auto;border:2px solid;background:#0E0B14;
+  display:flex;align-items:center;justify-content:center;color:#F2EDFF}
+.node.cur .dot{box-shadow:0 0 0 3px #F5C542}
+.link{flex:0 0 auto;width:12px;height:2px;background:#443A6B}
+input[type=range]{-webkit-appearance:none;width:100%;height:14px;background:#0E0B14;border:2px solid #443A6B}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:18px;background:#F5C542;border:2px solid #0E0B14;cursor:pointer}
+.foot{color:#5A4E80;margin-top:16px;border-top:2px solid #241C3D;padding-top:8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1 id="title">BAZI—ANIMA 原型</h1>
+  <div class="sub" id="meta"></div>
+
+  <!-- 纵轴：推理层 -->
+  <div class="layers" id="layers"></div>
+
+  <div class="cols">
+    <!-- 左：命盘面板 -->
+    <div>
+      <div class="panel" style="margin-bottom:12px">
+        <div class="h3">命盘</div>
+        <div class="pillars" id="pillars"></div>
+      </div>
+      <div class="panel" style="margin-bottom:12px">
+        <div class="h3">五行力量</div>
+        <div id="bars"></div>
+        <div class="dim" style="margin-top:6px" id="wangshuai"></div>
+      </div>
+      <div class="panel" style="margin-bottom:12px">
+        <div class="h3">十神</div>
+        <div class="skills" id="skills"></div>
+      </div>
+      <div class="panel">
+        <div class="h3">状态</div>
+        <div class="buffs" id="buffs"></div>
+      </div>
+    </div>
+
+    <!-- 右：解读 -->
+    <div>
+      <div id="diffBox"></div>
+      <div class="panel" id="readingBox"></div>
+    </div>
+  </div>
+
+  <!-- 横轴：大运 / 流年 -->
+  <div class="panel" style="margin-top:12px">
+    <div class="h3">大运 · 流年</div>
+    <div class="map" id="map"></div>
+    <input type="range" id="slider">
+    <div style="display:flex;justify-content:space-between;margin-top:6px">
+      <span class="dim" id="y0"></span>
+      <span style="color:#F5C542;font-size:24px" id="yNow"></span>
+      <span class="dim" id="y1"></span>
+    </div>
+    <div class="dim" style="margin-top:6px" id="yInfo"></div>
+  </div>
+
+  <div class="foot" id="foot"></div>
+</div>
+
+<script>__TOKENS__</script>
+<script>const CHART=__CHART__;const READING=__READING__;</script>
+<script>
+const $=s=>document.querySelector(s), el=(t,c,h)=>{const n=document.createElement(t);if(c)n.className=c;if(h!=null)n.innerHTML=h;return n};
+let curV=0, litEvidence=null;
+
+/* ── 头 ── */
+$('#title').textContent='BAZI—ANIMA 原型 · 结论演化史';
+$('#meta').innerHTML=`${READING.chart}　<span style="color:#443A6B">|</span>　真太阳时 ${CHART.time.trueSolarTime}（校正 ${CHART.time.correctionMinutes} 分）　<span style="color:#443A6B">|</span>　起运 ${CHART.palaces.config.qiYunAge} 岁`;
+$('#foot').innerHTML='以上为娱乐性质的传统命理解读，不构成任何专业建议。<br>解读由 skill/bazi-reading 执行，排盘由 engine/ 计算 —— 模型不参与任何干支计算。<br>假设：'+READING.assumptions.join('；');
+
+/* ── 纵轴 ── */
+function renderLayers(){
+  const L=$('#layers'); L.innerHTML='';
+  const ALL=[{v:'V1',n:'身强弱·五行'},{v:'V2',n:'宫位·粗读'},{v:'V3',n:'藏干·坐支'},
+             {v:'V4',n:'纳音'},{v:'V5',n:'十神'},{v:'V6',n:'神煞'}];
+  ALL.forEach((x,i)=>{
+    const has=i<READING.versions.length;
+    const d=el('div','ly'+(i===curV?' on':'')+(has&&i<curV?' done':''),
+      `<b>${x.v}</b><i>${x.n}</i>${has?'':'<i style="color:#443A6B">未实现</i>'}`);
+    if(has) d.onclick=()=>{curV=i;render()};
+    else d.style.opacity=.35;
+    L.appendChild(d);
+  });
+}
+
+/* ── 左侧命盘 ── */
+const PK=['year','month','day','hour'];
+function renderChart(){
+  $('#pillars').innerHTML=PK.map(p=>{
+    const v=CHART.pillars[p], c=DS.wuXing[v.ganWuXing],
+          ss=v.shiShenGan==='日主'?DS.base.gold:DS.colorOfShiShen(v.shiShenGan);
+    return `<div class="pil" data-ev="${v.label}柱" style="border-color:${c.dark}">
+      <div class="hd">${CHART.palaces.byPillar[p].palace}</div>
+      <div class="gz" style="color:${c.base}">${v.gan}<br>${v.zhi}</div>
+      <div class="ft" style="color:${ss}">${v.shiShenGan}</div></div>`;
+  }).join('');
+
+  $('#bars').innerHTML=Object.entries(CHART.wuXing.percent).map(([k,v])=>{
+    const c=DS.wuXing[k];
+    return `<div class="barRow" data-ev="${k}"><div style="color:${c.base};text-align:center">${k}</div>
+      <div class="bar"><i style="width:${Math.min(100,v*2.2)}%;background:${c.base};border-right:2px solid ${c.light}"></i></div>
+      <div class="dim" style="text-align:right">${v}%</div></div>`;
+  }).join('');
+  $('#wangshuai').textContent=`同党 ${CHART.wangShuai.allyPercent}% · ${CHART.wangShuai.label}`;
+
+  $('#skills').innerHTML=Object.entries(CHART.shiShenCount).sort((a,b)=>b[1]-a[1]).map(([s,n])=>{
+    const c=DS.colorOfShiShen(s);
+    return `<div class="sk" data-ev="${s}" title="${s}" style="border-color:${c}">
+      <b style="color:${c}">${s[0]}</b><span>${n}</span></div>`;
+  }).join('');
+
+  const seen=new Set();
+  $('#buffs').innerHTML=CHART.shenSha.filter(s=>{if(seen.has(s.name))return false;seen.add(s.name);return true})
+    .map(s=>{const d=DS.shenSha[s.name]; if(!d)return '';
+      const c=DS.toneColor[d.tone];
+      return `<span class="bf" data-ev="${s.name}" title="${s.name} @${s.pillars.join('')}" style="border-color:${c}">
+        <b style="color:${c}">${d.label}</b></span>`;}).join('');
+}
+
+/* ── 右侧解读 ── */
+function changedPaths(v){ return new Set((v.diff||[]).map(d=>d.path)); }
+
+function claimHTML(path,label,obj,changed){
+  if(!obj) return '';
+  if(obj.note) return `<div class="claim"><span class="k">${label}</span> <span class="dim">${obj.note}</span></div>`;
+  const ch=changed.has(path)?' changed':'';
+  const ev=(obj.evidence||[]).map(e=>'· '+e).join('<br>');
+  return `<div class="claim${ch}" data-path="${path}" data-ev="${(obj.evidence||[]).join('|')}">
+    <span class="k">${label}</span>${obj.confidence?`<span class="tag">${obj.confidence}</span>`:''}
+    <div class="c">${obj.claim}</div><div class="ev">${ev}</div></div>`;
+}
+
+function renderReading(){
+  const v=READING.versions[curV], ch=changedPaths(v), R=v.reading;
+  let h=`<div class="h3">${v.version} · ${v.title}</div>
+    <div class="dim" style="margin-bottom:10px">已解锁：${v.unlockedDimensions.join(' / ')}</div>`;
+
+  h+='<div class="sec"><div class="t">骨架</div>';
+  for(const k of Object.keys(R.骨架||{})) h+=claimHTML('骨架.'+k,k,R.骨架[k],ch);
+  h+='</div>';
+
+  h+='<div class="sec"><div class="t">六亲宫</div>';
+  if(R.六亲宫.note) h+=`<div class="dim">${R.六亲宫.note}</div>`;
+  else for(const k of Object.keys(R.六亲宫)) h+=claimHTML('六亲宫.'+k,k,R.六亲宫[k],ch);
+  h+='</div>';
+
+  h+='<div class="sec"><div class="t">年龄段</div>';
+  for(const b of R.年龄段){
+    if(b.note){h+=`<div class="dim">${b.note}</div>`;continue}
+    h+=`<div class="claim" data-ev="${(b.evidence||[]).join('|')}">
+      <span class="k">${b.range} 岁</span><span class="tag">${b.pillar}</span>
+      <div class="c">${b.claim}</div><div class="ev">${(b.evidence||[]).map(e=>'· '+e).join('<br>')}</div></div>`;
+  }
+  h+='</div>';
+
+  h+='<div class="sec"><div class="t">领域</div>';
+  for(const k of Object.keys(R.领域)) h+=claimHTML('领域.'+k,k,R.领域[k],ch);
+  h+='</div>';
+  $('#readingBox').innerHTML=h;
+
+  // diff / conflicts
+  let d='';
+  if(v.diff&&v.diff.length){
+    d+=`<div class="diff"><div class="h3">这一层改写了 ${v.diff.length} 处</div>`;
+    for(const x of v.diff) d+=`<div class="row"><div class="dim">${x.path}</div>
+      <div class="from">${x.from}</div><div class="to">→ ${x.to}</div>
+      <div class="why">触发：${x.trigger}　·　${x.why}</div></div>`;
+    d+='</div>';
+  }
+  for(const c of (v.conflicts||[])) d+=`<div class="conf"><div class="h3" style="color:#FF5C6E">冲突：${c.between.join(' ↔ ')}</div>
+    <div>${c.issue}</div><div class="why" style="margin-top:4px">处理：${c.resolution}</div></div>`;
+  $('#diffBox').innerHTML=d;
+
+  // 点开看证据 + 高亮盘面
+  $('#readingBox').querySelectorAll('.claim').forEach(n=>{
+    n.onclick=()=>{ n.classList.toggle('open'); highlight((n.dataset.ev||'').split('|')); };
+  });
+}
+
+/* ── 证据高亮 ── */
+function highlight(evs){
+  document.querySelectorAll('.lit').forEach(n=>n.classList.remove('lit'));
+  const blob=evs.join(' ');
+  document.querySelectorAll('[data-ev]').forEach(n=>{
+    const key=n.dataset.ev;
+    if(key&&blob.includes(key)) n.classList.add('lit');
+  });
+}
+
+/* ── 横轴 ── */
+const DY=CHART.daYun.filter(d=>d.gan);
+function renderMap(year){
+  const m=$('#map'); m.innerHTML='';
+  DY.forEach((d,i)=>{
+    if(i) m.appendChild(el('div','link'));
+    const c=DS.wuXing[d.ganWuXing], cs=DS.changSheng[d.changSheng]||{level:2,label:d.changSheng};
+    const cur=year>=d.startYear&&year<=d.endYear;
+    const n=el('div','node'+(cur?' cur':''),
+      `<div class="dot" style="border-color:${c.base};opacity:${[.25,.45,.65,.85,1][cs.level]}">${d.gan}</div>
+       <div style="color:${c.base}">${d.ganZhi}</div>
+       <div class="dim">${cs.label}</div><div style="color:#443A6B">${d.startYear}</div>`);
+    n.onclick=()=>{ $('#slider').value=d.startYear; onYear(d.startYear); };
+    m.appendChild(n);
+  });
+}
+function onYear(y){
+  $('#yNow').textContent=y;
+  renderMap(y);
+  const d=DY.find(x=>y>=x.startYear&&y<=x.endYear);
+  const ln=d&&d.liuNian.find(l=>l.year===+y);
+  $('#yInfo').innerHTML=d?`大运 <span class="hi">${d.ganZhi}</span>（${d.shiShenGan}·${d.changSheng}）　流年 <span class="hi">${ln?ln.ganZhi:'—'}</span>${ln?`（${ln.shiShenGan}）`:''}　${ln?ln.age+' 岁':''}`
+    :'起运前';
+}
+
+/* ── 启动 ── */
+function render(){ renderLayers(); renderReading(); }
+renderChart(); render();
+const yA=DY[0].startYear, yB=DY[DY.length-1].endYear;
+Object.assign($('#slider'),{min:yA,max:yB,value:2026});
+$('#y0').textContent=yA; $('#y1').textContent=yB;
+$('#slider').oninput=e=>onYear(+e.target.value);
+onYear(2026);
+</script>
+</body>
+</html>
