@@ -8,7 +8,8 @@
   else root.Director = factory();
 })(typeof self !== 'undefined' ? self : this, function () {
 
-  /* 给 LLM 的系统提示 —— 真实接入时随 chart 摘要一起 POST */
+  /* （文档用途）早期版本的提示词构造。实际提示词在 server/lib/core.js 服务端组装，
+     前端只发 {question, chart, readingDigest}。 */
   function buildPrompt(question, chart, final) {
     return {
       system: [
@@ -52,12 +53,35 @@
     },
   };
 
+  /* 没有预生成命书（新盘离线）时的通用场景 —— 画面按盘走，字幕只说画面 + 引导接 API */
+  const GENERIC = {
+    love:   { caption: '配偶宫在你的日柱。想听这条线的细节，得让命理师上线（接 API）再问。',
+              actors: [{sprite:'umbrella',x:30},{sprite:'hero',behavior:'idle',x:24},{sprite:'ghost',x:70}] },
+    wealth: { caption: '钱的形状每张盘不一样——币怎么掉、筐在哪，要问在线的命理师。',
+              actors: [{sprite:'coin',behavior:'fall',x:10,count:4},{sprite:'hero',behavior:'idle'}] },
+    career: { caption: '火把哪支亮着，得对着你的大运看——在线提问能给你具体的。',
+              actors: [{sprite:'torch',behavior:'off',x:8},{sprite:'torch',behavior:'flicker',x:54},{sprite:'torch',behavior:'lit',x:100},{sprite:'hero',behavior:'walk',range:[2,100]}] },
+    health: { caption: '雨大不大，看你盘里的水；怀里有没有火，看你的纳音。',
+              actors: [{sprite:'hero',behavior:'curl'},{sprite:'flame',behavior:'blink',x:56,y:32}], backdrop: 'rain' },
+    family: { caption: '父母宫在年柱——墙厚不厚，每张盘不同。',
+              actors: [{sprite:'wall',x:10},{sprite:'wall',x:100},{sprite:'hero',behavior:'idle'}] },
+    peers:  { caption: '同辈这条线看比劫的分布——具体到你，得在线问。',
+              actors: [{sprite:'ghost',x:6},{sprite:'hero',behavior:'idle'},{sprite:'ghost',x:98}] },
+    future: { caption: '四块砖照你的四柱五行上色——时间轴在下面，拖着看。',
+              actors: [{sprite:'tiles'},{sprite:'hero',behavior:'walk',range:[4,112]}], backdrop: 'none' },
+    self:   { caption: '绕着你转的是你的五行，密的多、疏的少。',
+              actors: [{sprite:'orbit',behavior:'wuxing'},{sprite:'hero',behavior:'idle'}] },
+    express:{ caption: '话冒上来有没有被压住，看印和伤官的比例。',
+              actors: [{sprite:'lid',x:44,y:8,w:32},{sprite:'bubbles',behavior:'rise',x:54,count:5},{sprite:'hero',behavior:'idle'}] },
+  };
+
   function fallback(question, ctx) {
     const r = ctx.route(question);
     if (FIXED[r]) return { script: FIXED[r], via: 'fixed', route: r };
     const blockId = ROUTE_TO_BLOCK[r] || 'who';
     const block = (ctx.final.blocks || []).find(b => b.id === blockId);
     if (block && block.anim) return { script: block.anim, via: 'prebaked', route: r };
+    if (GENERIC[r]) return { script: { duration: 14, backdrop: 'ground', ...GENERIC[r] }, via: 'generic', route: r };
     return { script: FIXED.unknown, via: 'fixed', route: r };
   }
 
@@ -66,10 +90,13 @@
     const endpoint = (typeof window !== 'undefined' && window.BAZI_API) || ctx.endpoint;
     if (endpoint) {
       try {
-        const prompt = buildPrompt(question, ctx.chart, ctx.final);
         const res = await fetch(endpoint, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ question, prompt }),
+          body: JSON.stringify({
+            question,
+            chart: ctx.chart,   // 服务端 (server/lib/core.js) 自己组提示词
+            readingDigest: (ctx.final.blocks || []).map(b => ({ id: b.id, title: b.title })),
+          }),
         });
         const raw = await res.json();
         const sc = raw.script || raw;          // 兼容裸脚本或 {script} 包装

@@ -53,6 +53,26 @@ h1{font-size:24px;color:#F2EDFF;line-height:1;letter-spacing:3px}
 .hint{border:2px solid #33285A;padding:1px 6px;color:#8579B0;cursor:pointer;background:#0E0B14}
 .hint:hover{border-color:#6B5CA5;color:#C6BCE6}
 
+/* 输入页 */
+#viewInput{max-width:420px;margin:8vh auto 0}
+#viewInput h1{margin-bottom:4px}
+.fRow{margin-top:14px}
+.fRow label{display:block;color:#8579B0;margin-bottom:4px;letter-spacing:1px}
+.fRow input,.fRow select{width:100%;background:#0E0B14;border:2px solid #443A6B;color:#F2EDFF;
+  padding:9px;font-family:inherit;font-size:12px;outline:none}
+.fRow input:focus,.fRow select:focus{border-color:#F5C542}
+.fGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.seg2{display:flex;gap:0}
+.seg2 span{flex:1;text-align:center;border:2px solid #443A6B;padding:9px 0;cursor:pointer;color:#8579B0}
+.seg2 span+span{border-left:0}
+.seg2 span.on{background:#33285A;color:#F5C542;border-color:#F5C542;position:relative;z-index:1}
+.goBtn{width:100%;margin-top:22px;background:#241C3D;border:2px solid #F5C542;color:#F5C542;
+  padding:12px;font-family:inherit;font-size:24px;letter-spacing:6px;cursor:pointer}
+.goBtn:active{background:#33285A}
+.demoLink{text-align:center;margin-top:12px;color:#5A4E80;cursor:pointer}
+.demoLink:hover{color:#C6BCE6}
+.stubNote{border:2px solid #443A6B;background:#171226;padding:12px;color:#8579B0;margin-top:8px}
+
 /* 对话模式 */
 .modeBar{display:flex;justify-content:space-between;align-items:center;margin-top:18px}
 .modeBtn{border:2px solid #443A6B;background:#171226;color:#8579B0;padding:4px 10px;cursor:pointer;font-family:inherit;font-size:12px}
@@ -100,7 +120,23 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;heigh
 </style>
 </head>
 <body>
-<div class="wrap">
+<!-- 视图一：输入 -->
+<div id="viewInput">
+  <h1>BAZI—ANIMA</h1>
+  <div class="dim">报上生辰，看你的像素命书</div>
+  <div class="fRow"><label>公历生日</label><input id="fDate" type="date" value="1998-11-24"></div>
+  <div class="fRow fGrid">
+    <div><label>出生时刻</label><input id="fTime" type="time" value="10:30"></div>
+    <div><label>性别</label><div class="seg2" id="fGender"><span data-v="male" class="on">男</span><span data-v="female">女</span></div></div>
+  </div>
+  <div class="fRow"><label>出生城市（用于真太阳时校正）</label><select id="fCity"></select></div>
+  <button class="goBtn" id="fGo">起　盘</button>
+  <div class="demoLink" id="fDemo">直接看演示盘（含完整命书）→</div>
+  <div class="dim" style="margin-top:24px;text-align:center">仅供娱乐 · 生辰信息只在你的浏览器里计算，不上传</div>
+</div>
+
+<!-- 视图二：命书（原页面） -->
+<div class="wrap" id="viewReading" style="display:none">
   <span class="devBtn" id="devBtn">·</span>
   <h1 id="bazi"></h1>
   <div class="dim" id="who" style="margin-bottom:14px"></div>
@@ -168,13 +204,65 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;heigh
   <div class="foot" id="foot"></div>
 </div>
 
+<script>__ENGINE__</script>
 <script>__TOKENS__</script>
 <script>__STAGE__</script>
 <script>__DIRECTOR__</script>
-<script>const CHART=__CHART__;const FINAL=__FINAL__;const PROCESS=__PROCESS__;</script>
+<script>const DEMO_CHART=__CHART__;const DEMO_FINAL=__FINAL__;const PROCESS=__PROCESS__;</script>
 <script>
 const $=s=>document.querySelector(s);
 const PK=['year','month','day','hour'];
+
+/* ═══ 输入页 ═══ */
+(function(){
+  const sel=$('#fCity');
+  sel.innerHTML=Object.keys(EngineCities).map(c=>`<option${c==='北京'?' selected':''}>${c}</option>`).join('')
+    +'<option value="">其他 / 不校正</option>';
+  let gender='male';
+  $('#fGender').querySelectorAll('span').forEach(n=>n.onclick=()=>{
+    gender=n.dataset.v;
+    $('#fGender').querySelectorAll('span').forEach(x=>x.classList.toggle('on',x===n));
+  });
+  function stubFinal(chart){
+    const pc=chart.wuXing.percent;
+    const sorted=Object.entries(pc).sort((a,b)=>b[1]-a[1]);
+    const [maxW,maxV]=sorted[0], [minW,minV]=sorted[4];
+    const dy=chart.daYun.filter(d=>d.gan);
+    return {
+      chart:chart.bazi, who:(chart.input.gender==='male'?'男':'女')+' · '+chart.input.clockTime+' · '+(chart.input.birthplace||'未知地'),
+      disclaimer:'以上为娱乐性质的传统命理解读，不构成任何专业建议。',
+      stub:true,
+      blocks:[
+        {id:'open',title:'速览',scene:'self',
+         text:'你的八字：'+chart.bazi+'。\n\n日主'+chart.dayMaster.gan+chart.dayMaster.wuXing
+          +'，五行里'+maxW+'最多（'+maxV+'%），'+minW+'最少（'+minV+'%）。旺衰初判：'+chart.wangShuai.label
+          +'（同党 '+chart.wangShuai.allyPercent+'%）。\n\n宫位：'
+          +PK.map(p=>chart.palaces.byPillar[p].label+'柱'+chart.palaces.byPillar[p].ganZhi+'＝'+chart.palaces.byPillar[p].palace).join('，')
+          +'。\n\n'+chart.qiYun.text+'，第一步大运 '+(dy[0]?dy[0].ganZhi+'（'+dy[0].startYear+' 年起）':'—')+'。',
+         anim:{caption:'绕着你转的点就是你的五行——'+maxW+'色的最多，'+minW+'最少。',duration:14,backdrop:'ground',
+               actors:[{sprite:'orbit',behavior:'wuxing'},{sprite:'hero',behavior:'idle'}]}},
+        {id:'oneline',title:'说明',scene:'self',
+         text:'上面的盘、五行、十神、神煞、大运时间轴都是照你的生辰实算的；下面的提问也会按你的盘回答。完整的长文命书要跑一遍解读流水线（V1–V6 + 文风层），这个演示页还没接——想看完整效果，回开头点「演示盘」。'}
+      ]
+    };
+  }
+  function boot(chart,final){
+    $('#viewInput').style.display='none';
+    $('#viewReading').style.display='';
+    initReading(chart,final);
+  }
+  $('#fGo').onclick=()=>{
+    const d=$('#fDate').value, t=$('#fTime').value;
+    if(!d||!t){alert('生日和时刻都要填');return}
+    const [y,m,dd]=d.split('-').map(Number), [h,mi]=t.split(':').map(Number);
+    const chart=Engine.paipan({year:y,month:m,day:dd,hour:h,minute:mi,gender,city:sel.value||undefined});
+    const isDemo=chart.bazi===DEMO_CHART.bazi&&gender==='male';
+    boot(chart,isDemo?DEMO_FINAL:stubFinal(chart));
+  };
+  $('#fDemo').onclick=()=>boot(DEMO_CHART,DEMO_FINAL);
+})();
+
+function initReading(CHART,FINAL){
 
 /* 头 */
 $('#bazi').textContent=CHART.bazi;
@@ -330,8 +418,9 @@ showPara(0);
 const mApi=location.hash.match(/#api=(.+)/);
 if(mApi) window.BAZI_API=decodeURIComponent(mApi[1]);
 
-/* 开发者视图：推理过程 —— 用户看不到，点右上角那个点 */
+/* 开发者视图（仅演示盘有推理过程） */
 $('#devBtn').onclick=()=>{
+  if(FINAL.stub)return;
   const d=$('#dev');d.classList.toggle('on');
   if(d.innerHTML)return;
   d.innerHTML='<div class="panel"><div class="lab">内部推理过程（不对用户展示）</div>'+
@@ -345,6 +434,7 @@ $('#devBtn').onclick=()=>{
         <span style="color:#5CE1C4">${c.resolution}</span></div>`).join('')}
     </div>`).join('')+'</div>';
 };
+} /* end initReading */
 </script>
 </body>
 </html>
