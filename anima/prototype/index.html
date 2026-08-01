@@ -102,6 +102,12 @@ h1{font-size:24px;color:#F2EDFF;line-height:1;letter-spacing:3px}
 .one{border:2px solid #F5C542;background:#1C1526;padding:16px;text-align:center;
   font-size:24px;line-height:1.6;color:#F2EDFF}
 
+/* 生成 */
+.genWrap{border:2px solid #F5C542;background:#1C1526;padding:14px;margin-top:14px;text-align:center}
+.genWrap .goBtn{margin-top:0}
+.genWrap .dim{margin-top:8px}
+.dlLink{color:#5CE1C4;cursor:pointer;margin-left:10px}
+
 /* 5. 时间轴 */
 .map{display:flex;align-items:center;overflow-x:auto;padding:6px 0}
 .node{flex:0 0 auto;width:52px;text-align:center;cursor:pointer}
@@ -185,6 +191,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;heigh
     <span id="navPrev">← 上一章</span>
     <span id="navNext">下一章 →</span>
   </div>
+  <div id="genArea"></div>
   <div id="reading" style="display:none"></div>
 
   <!-- ⑤ 时间轴 -->
@@ -212,6 +219,11 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;heigh
 <script>
 const $=s=>document.querySelector(s);
 const PK=['year','month','day','hour'];
+
+/* 后端：默认接线上 worker；URL 带 #api=… 可覆盖；#offline 强制离线 */
+const mApi=location.hash.match(/#api=(.+)/);
+window.BAZI_API = mApi ? decodeURIComponent(mApi[1])
+  : (location.hash==='#offline' ? '' : 'https://bazi-ask.gnosil.workers.dev');
 
 /* ═══ 输入页 ═══ */
 (function(){
@@ -263,11 +275,12 @@ const PK=['year','month','day','hour'];
 })();
 
 function initReading(CHART,FINAL){
+let F=FINAL, CUR_PROCESS=(FINAL.stub?null:PROCESS), FLOW=[];
 
 /* 头 */
 $('#bazi').textContent=CHART.bazi;
-$('#who').textContent=FINAL.who+'　·　真太阳时 '+CHART.time.trueSolarTime;
-$('#foot').innerHTML=FINAL.disclaimer;
+$('#who').textContent=F.who+'　·　真太阳时 '+CHART.time.trueSolarTime;
+$('#foot').innerHTML=F.disclaimer;
 
 /* ① 命盘 */
 $('#pillars').innerHTML=PK.map(p=>{
@@ -300,7 +313,7 @@ $('#buffs').innerHTML=CHART.shenSha.filter(s=>{if(seen.has(s.name))return false;
 
 /* ② 舞台 —— 一切都走脚本：预生成的（final.blocks[].anim）或 LLM 实时生成的 */
 const stage=Stage.mount($('#stage'),CHART,{scale:6});
-const DCTX={chart:CHART,final:FINAL,route:Stage.route,validate:Stage.validateScript};
+const DCTX={chart:CHART,get final(){return F},route:Stage.route,validate:Stage.validateScript};
 function playScript(sc,via){
   try{ stage.playScript(sc); }catch(e){ console.warn(e); stage.play('unknown'); }
   $('#capText').textContent=sc.caption||'';
@@ -308,10 +321,9 @@ function playScript(sc,via){
   $('#stageTag').textContent='';
 }
 function playBlock(id){
-  const b=FINAL.blocks.find(x=>x.id===id);
+  const b=F.blocks.find(x=>x.id===id);
   if(b&&b.anim) playScript(b.anim,'prebaked');
 }
-playBlock('open');
 
 /* ③ 提问 —— 有 window.BAZI_API 就实时调 LLM 生成脚本，否则回退预生成 */
 async function ask(){
@@ -328,19 +340,26 @@ $('#hints').querySelectorAll('.hint').forEach(n=>n.onclick=()=>{$('#q').value=n.
 
 /* ④ 推断 */
 const para=t=>t.split('\n\n').map(x=>`<p>${x.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')}</p>`).join('');
-$('#reading').innerHTML=FINAL.blocks.map(b=>{
-  if(b.id==='oneline') return `<div class="block"><div class="one">${b.text}</div></div>`;
-  let h=`<div class="block" data-block="${b.id}"><h2>${b.title}</h2>`;
-  if(b.text) h+=para(b.text);
-  if(b.segments) h+=b.segments.map(s=>`<div class="seg"><div><span class="age">${s.age}</span><span class="pl">${s.pillar}</span></div>${para(s.text)}</div>`).join('');
-  return h+'</div>';
-}).join('');
-// 滚到哪一块，舞台就演那一块的脚本
 const obs=new IntersectionObserver(es=>{
   if(mode!=='full')return;
   for(const e of es) if(e.isIntersecting&&e.target.dataset.block) playBlock(e.target.dataset.block);
 },{rootMargin:'-40% 0px -40% 0px'});
-document.querySelectorAll('.block[data-block]').forEach(n=>obs.observe(n));
+function renderFinal(){
+  $('#who').textContent=F.who+'　·　真太阳时 '+CHART.time.trueSolarTime;
+  $('#reading').innerHTML=F.blocks.map(b=>{
+    if(b.id==='oneline') return `<div class="block"><div class="one">${b.text}</div></div>`;
+    let h=`<div class="block" data-block="${b.id}"><h2>${b.title}</h2>`;
+    if(b.text) h+=para(b.text);
+    if(b.segments) h+=b.segments.map(s=>`<div class="seg"><div><span class="age">${s.age}</span><span class="pl">${s.pillar}</span></div>${para(s.text)}</div>`).join('');
+    return h+'</div>';
+  }).join('');
+  $('#genArea').innerHTML=(F.stub&&window.BAZI_API)?`<div class="genWrap"><button class="goBtn" id="genFull">生成完整命书</button>
+    <div class="dim">V1→V6 六层推演 + 成文，约 2–3 分钟 · 生成过程会在上面的画面框直播</div></div>`:'';
+  document.querySelectorAll('.block[data-block]').forEach(n=>obs.observe(n));
+  const g=$('#genFull'); if(g) g.onclick=genFull;
+  buildFlow(); showPara(0,true);
+  playBlock('open');
+}
 
 /* ⑤ 时间轴 */
 const DY=CHART.daYun.filter(d=>d.gan);
@@ -373,13 +392,16 @@ const d0=DY.find(x=>2026>=x.startYear&&x.endYear>=2026),l0=d0&&d0.liuNian.find(l
 $('#yInfo').innerHTML=d0?`大运 <span class="hi">${d0.ganZhi}</span>　流年 <span class="hi">${l0?l0.ganZhi:'—'}</span>　${l0?l0.age+' 岁':''}`:'';
 
 /* 对话模式 —— 一段一段讲，正在打字时点一下=立刻显示全段，打完点一下=下一段 */
-const FLOW=[];
-FINAL.blocks.forEach(b=>{
-  const paras=[];
-  if(b.text) b.text.split('\n\n').forEach(t=>paras.push({t}));
-  if(b.segments) b.segments.forEach(sg=>sg.text.split('\n\n').forEach((t,i)=>paras.push({t,kick:i===0?sg.age+'　'+sg.pillar:null})));
-  paras.forEach((p,i)=>FLOW.push({block:b.id,title:b.title,first:i===0,gold:b.id==='oneline',...p}));
-});
+function buildFlow(){
+  FLOW=[];
+  F.blocks.forEach(b=>{
+    const paras=[];
+    if(b.text) b.text.split('\n\n').forEach(t=>paras.push({t}));
+    if(b.segments) b.segments.forEach(sg=>sg.text.split('\n\n').forEach((t,i)=>paras.push({t,kick:i===0?sg.age+'　'+sg.pillar:null})));
+    paras.forEach((p,i)=>FLOW.push({block:b.id,title:b.title,first:i===0,gold:b.id==='oneline',...p}));
+  });
+  fi=0;
+}
 let fi=0,typing=null,mode='dlg';
 const fmt=t=>t.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
 function showPara(i,instant){
@@ -412,20 +434,14 @@ $('#modeBtn').onclick=()=>{
   $('#reading').style.display=mode==='dlg'?'none':'';
   $('#modeBtn').textContent=mode==='dlg'?'整页阅读':'一段一段看';
 };
-showPara(0);
-
-/* 后端：默认接线上 worker；URL 带 #api=… 可覆盖；#offline 强制离线 */
-const mApi=location.hash.match(/#api=(.+)/);
-window.BAZI_API = mApi ? decodeURIComponent(mApi[1])
-  : (location.hash==='#offline' ? '' : 'https://bazi-ask.gnosil.workers.dev');
+renderFinal();
 
 /* 开发者视图（仅演示盘有推理过程） */
 $('#devBtn').onclick=()=>{
-  if(FINAL.stub)return;
+  if(!CUR_PROCESS)return;
   const d=$('#dev');d.classList.toggle('on');
-  if(d.innerHTML)return;
   d.innerHTML='<div class="panel"><div class="lab">内部推理过程（不对用户展示）</div>'+
-    PROCESS.map(v=>`<div style="margin-top:10px;border-top:2px solid #241C3D;padding-top:8px">
+    CUR_PROCESS.map(v=>`<div style="margin-top:10px;border-top:2px solid #241C3D;padding-top:8px">
       <div class="gold">${v.version} · ${v.title}</div>
       <div class="dim">解锁：${v.unlockedDimensions.join(' / ')}</div>
       ${(v.diff||[]).map(x=>`<div style="margin-top:6px"><span class="dim">${x.path}</span><br>
@@ -435,6 +451,76 @@ $('#devBtn').onclick=()=>{
         <span style="color:#5CE1C4">${c.resolution}</span></div>`).join('')}
     </div>`).join('')+'</div>';
 };
+/* ═══ 完整命书流水线 ═══ */
+function buildAnims(chart){
+  const hourFrom=Math.round(chart.palaces.byPillar.hour.ageFrom);
+  return {
+    open:{duration:14,backdrop:'ground',actors:[{sprite:'orbit',behavior:'wuxing'},{sprite:'hero',behavior:'idle'},{sprite:'flame',behavior:'blink',x:78,y:32}]},
+    who:{duration:14,backdrop:'ground',actors:[{sprite:'lid',x:44,y:8,w:32},{sprite:'bubbles',behavior:'rise',x:54,count:5,ceiling:12},{sprite:'hero',behavior:'idle'}]},
+    family:{duration:12,backdrop:'ground',actors:[{sprite:'wall',x:10},{sprite:'wall',x:100},{sprite:'hero',behavior:'idle'}]},
+    peers:{duration:14,backdrop:'ground',actors:[{sprite:'ghost',x:6},{sprite:'ghost',x:98},{sprite:'hero',behavior:'idle'},{sprite:'coin',behavior:'drift',from:[52,32],to:[12,26]}]},
+    love:{duration:16,backdrop:'ground',actors:[{sprite:'umbrella',x:30,y:1},{sprite:'ghost',x:60},{sprite:'hero',behavior:'idle',x:24},{sprite:'rival',behavior:'approach',range:[78,102]},{sprite:'crack',x:26,len:24}]},
+    path:{duration:16,backdrop:'none',actors:[{sprite:'tiles'},{sprite:'hero',behavior:'walk',range:[4,112],speed:1}]},
+    money:{duration:15,backdrop:'ground',actors:[{sprite:'coin',behavior:'fall',x:8,count:6,period:17},{sprite:'basket',x:96},{sprite:'hero',behavior:'idle',x:16}]},
+    career:{duration:16,backdrop:'ground',actors:[{sprite:'torch',behavior:'off',x:8},{sprite:'torch',behavior:'off',x:31},{sprite:'torch',behavior:'off',x:54},{sprite:'torch',behavior:'flicker',x:77},{sprite:'torch',behavior:'lit',x:100},{sprite:'hero',behavior:'walk',range:[2,100],speed:1}]},
+    body:{duration:15,backdrop:'rain',actors:[{sprite:'hero',behavior:'curl'},{sprite:'flame',behavior:'blink',x:56,y:32}]},
+    oneline:{duration:12,backdrop:'ground',actors:[{sprite:'hero',behavior:'cheer'},{sprite:'flame',behavior:'steady',x:78,y:30}]},
+  };
+}
+
+async function genFull(){
+  const btn=$('#genFull'); btn.disabled=true; btn.textContent='推演中…';
+  const url=window.BAZI_API.replace(/\/+$/,'')+'/reading';
+  const CHART=DCTX.chart;
+  const stepScene={V1:'self',V2:'family',V3:'love',V4:'self',V5:'peers',V6:'future',voiceA:'express',voiceB:'career'};
+  const stepName={V1:'V1 身强弱·五行',V2:'V2 宫位',V3:'V3 藏干·坐支',V4:'V4 纳音',V5:'V5 十神',V6:'V6 神煞',voiceA:'成文 · 上半',voiceB:'成文 · 下半'};
+  const post=async b=>{
+    const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)});
+    const j=await r.json();
+    if(!r.ok||j.error) throw new Error(j.error||('HTTP '+r.status));
+    return j;
+  };
+  try{
+    let prev=null; const vsteps=[],diffs=[];
+    const order=['V1','V2','V3','V4','V5','V6','voiceA','voiceB'];
+    const blocks={};
+    for(let i=0;i<order.length;i++){
+      const st=order[i];
+      stage.play(stepScene[st]);
+      $('#capText').textContent='推演中 '+(i+1)+'/8 · '+stepName[st]+'……';
+      $('#capVia').textContent='';
+      btn.textContent='推演中 '+(i+1)+'/8';
+      const body=/^V/.test(st)?{step:st,chart:CHART,prev}:{step:st,chart:CHART,r6:prev,diffs:diffs.slice(0,14)};
+      const j=await post(body);
+      if(/^V/.test(st)){
+        prev=j.result.reading; vsteps.push(j.result);
+        for(const d of (j.result.diff||[])) diffs.push({v:st,...d});
+      } else for(const b of j.result.blocks) blocks[b.id]=b;
+    }
+    const anims=buildAnims(CHART);
+    const ORDER=['open','who','family','peers','love','path','money','career','body','oneline'];
+    const newBlocks=ORDER.filter(id=>blocks[id]).map(id=>{
+      const b=blocks[id], anim=anims[id];
+      if(anim){anim.caption=b.caption||(b.text||'').split('\n')[0].slice(0,48);}
+      return {...b,anim};
+    });
+    F={chart:CHART.bazi,who:F.who,disclaimer:'以上为娱乐性质的传统命理解读，不构成任何专业建议。',blocks:newBlocks};
+    CUR_PROCESS=vsteps.map((v,i)=>({version:'V'+(i+1),title:['身强弱·五行','宫位','藏干·坐支','纳音','十神','神煞'][i],
+      unlockedDimensions:[],diff:v.diff||[],conflicts:v.conflicts||[]}));
+    renderFinal();
+    // 下载链接
+    if(!$('#dlFinal')){
+      const a=document.createElement('span');a.id='dlFinal';a.className='dlLink';a.textContent='↓ 保存命书';
+      a.onclick=()=>{const bl=new Blob([JSON.stringify(F,null,2)],{type:'application/json'});
+        const u=URL.createObjectURL(bl);const l=document.createElement('a');l.href=u;l.download='mingshu-'+CHART.bazi.replace(/\s/g,'')+'.json';l.click();};
+      $('.modeBar').appendChild(a);
+    }
+    $('#capText').textContent='命书生成完毕。往下读，或点画面下方的问框提问。';
+  }catch(e){
+    alert('第'+(($('#capText').textContent.match(/(\d)\/8/)||[])[1]||'?')+'步失败：'+e.message+'\n可以再点一次按钮重试。');
+    btn.disabled=false;btn.textContent='生成完整命书（重试）';
+  }
+}
 } /* end initReading */
 </script>
 </body>
