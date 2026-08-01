@@ -67,7 +67,31 @@ function blit32(ctx, grid, palette, x, y, s, flip) {
 }
 const H32 = (typeof HERO32 !== 'undefined' && HERO32) ? HERO32
           : (typeof module === 'object' ? (function(){ try { return require('../assets/hero32.js'); } catch(e){ return null; } })() : null);
+const CAT_FRAME = { width:256, height:128 };
+function loadCatSprites(definition) {
+  if (!definition || typeof Image === 'undefined') return null;
+  const sprites = {};
+  for (const [name, source] of Object.entries(definition)) {
+    const image = new Image(); image.src = source; sprites[name] = image;
+  }
+  return sprites;
+}
+function drawCat(ctx, frameName, S, x, y) {
+  const sprites = S.catSprites;
+  if (!sprites) return false;
+  const name = frameName === 'walk0' || frameName === 'walk1' ? 'hop'
+    : frameName === 'curl' ? 'cast'
+    : frameName === 'shrug' || frameName === 'cheer' ? 'beckon' : 'idleSheet';
+  const image = sprites[name];
+  if (!image || !image.complete || !image.naturalWidth) return false;
+  const sx = name === 'idleSheet' ? (frameName === 'idle1' ? CAT_FRAME.width * 2 : 0) : 0;
+  const bob = name === 'idleSheet' && frameName === 'idle1' ? -1 : 0;
+  ctx.drawImage(image, sx, 0, CAT_FRAME.width, CAT_FRAME.height,
+    (x - 13) * S.s, (y - 29 + bob) * S.s, 58 * S.s, 29 * S.s);
+  return true;
+}
 function drawHero(ctx, frameName, S, x, y) {
+  if (drawCat(ctx, frameName, S, x, y)) return;
   if (H32 && H32.frames[frameName]) {
     const n = H32.size || H32.frames[frameName].length;
     if (n > 48) {
@@ -470,7 +494,8 @@ function mount(canvas, chart, opts = {}) {
   canvas.width = W * s; canvas.height = H * s;
   const ctx = canvas.getContext('2d');
   ctx.imageSmoothingEnabled = false;
-  const S = { chart, s, W, H, pal: palOf(chart.dayMaster.wuXing) };
+  const S = { chart, s, W, H, pal: palOf(chart.dayMaster.wuXing),
+    catSprites: loadCatSprites(opts.catSprites || (typeof window !== 'undefined' ? window.CAT_SPRITES : null)) };
   const fps = DS.motion.fps || 8;
   let scene = 'self', script = null, t = 0, timer = null;
 
