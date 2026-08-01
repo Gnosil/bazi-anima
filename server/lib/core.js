@@ -10,8 +10,9 @@ const SPRITES_OK = {
   basket: [], umbrella: [], wall: [], lid: [], bubbles: ['rise'], crack: [], qmark: ['blink'], ban: [], orbit: ['wuxing'], tiles: [],
 };
 
-function validateScript(sc) {
+function validateScript(sc, dynNames) {
   const err = m => { throw new Error('脚本校验失败: ' + m); };
+  const dyn = dynNames instanceof Set ? dynNames : new Set(dynNames || []);
   if (!sc || typeof sc !== 'object') err('不是对象');
   if (!sc.caption || typeof sc.caption !== 'string') err('caption 必填');
   if ([...sc.caption].length > 60) err('caption 超长');
@@ -22,10 +23,15 @@ function validateScript(sc) {
     actors: [],
   };
   for (const a of (sc.actors || []).slice(0, 12)) {
-    if (!Object.prototype.hasOwnProperty.call(SPRITES_OK, a.sprite)) err('未知 sprite: ' + a.sprite);
-    const ok = SPRITES_OK[a.sprite];
-    if (a.behavior && ok.length && !ok.includes(a.behavior)) err(a.sprite + ' 不支持 ' + a.behavior);
-    out.actors.push({ ...a, behavior: a.behavior || ok[0] || null });
+    const builtin = Object.prototype.hasOwnProperty.call(SPRITES_OK, a.sprite);
+    if (!builtin && !dyn.has(a.sprite)) err('未知 sprite: ' + a.sprite);
+    if (builtin) {
+      const ok = SPRITES_OK[a.sprite];
+      if (a.behavior && ok.length && !ok.includes(a.behavior)) err(a.sprite + ' 不支持 ' + a.behavior);
+      out.actors.push({ ...a, behavior: a.behavior || ok[0] || null });
+    } else {
+      out.actors.push({ ...a, behavior: ['static', 'blink'].includes(a.behavior) ? a.behavior : 'static' });
+    }
   }
   if (!out.actors.length) err('actors 为空');
   return out;
@@ -86,7 +92,7 @@ function chartDigest(chart) {
 
 /* 中转对 system 字段支持不可靠 → 规范放第一个 user turn，few-shot 锁格式。
  * 实测：纯 system 提示会被 deepseek-v4-flash 无视，few-shot 后 100% 出合法 DSL。 */
-function buildMessages(question, chart, readingDigest) {
+function buildMessages(question, chart, readingDigest, dynLine) {
   return [
     { role: 'user', content: SYSTEM + '\n\n命盘：' + JSON.stringify({ bazi: chart.bazi, wuXing: chart.wuXing && chart.wuXing.percent }) + '\n问题：钱怎么样' },
     { role: 'assistant', content: EX_MONEY },
@@ -94,7 +100,7 @@ function buildMessages(question, chart, readingDigest) {
     { role: 'assistant', content: EX_BOUND },
     { role: 'user', content: '命盘：' + JSON.stringify(chartDigest(chart)) +
         (readingDigest ? '\n已有解读块：' + JSON.stringify(readingDigest) : '') +
-        '\n问题：' + question + '\n（示例只示范 JSON 格式；caption 和画面必须针对这个问题和这张盘原创，禁止照抄示例句子）' },
+        (dynLine || '') + '\n问题：' + question + '\n（示例只示范 JSON 格式；caption 和画面必须针对这个问题和这张盘原创，禁止照抄示例句子）' },
   ];
 }
 
@@ -111,11 +117,16 @@ function extractJSON(text) {
  * 主入口。env: {BAZI_API_URL, BAZI_API_KEY, BAZI_MODEL}
  * body: {question, chart, readingDigest?}
  */
-async function answer(body, env, fetchFn) {
+async function answer(body, env, fetchFn, dynAssets) {
   const f = fetchFn || fetch;
   const question = String(body.question || '').slice(0, 200);
   if (!question) throw new Error('question 必填');
   if (!body.chart || !body.chart.bazi) throw new Error('chart 必填（前端把 chart.json 带上）');
+  const dynNames = new Set((dynAssets || []).map(a => a.name));
+  const dynLine = (dynAssets && dynAssets.length)
+    ? '\n可用扩展素材（behavior 只有 static|blink，坐标 x,y；按意象选用）：' +
+      dynAssets.map(a => a.name + '(' + a.label + '=' + a.symbolism + ')').join('；')
+    : '';
 
   const call = async (messages) => {
     const res = await f(env.BAZI_API_URL || 'https://api.openai-next.com/v1/messages', {
@@ -138,12 +149,12 @@ async function answer(body, env, fetchFn) {
     return { text, data };
   };
 
-  const base = buildMessages(question, body.chart, body.readingDigest);
+  const base = buildMessages(question, body.chart, body.readingDigest, dynLine);
   let { text, data } = await call(base);
   let raw = text;
 
   try {
-    const script = validateScript(extractJSON(raw));
+    const script = validateScript(extractJSON(raw), dynNames);
     return { script, usage: data.usage || null, model: data.model, retried: false };
   } catch (e1) {
     // 重试一次：把不合法输出和错误一起打回去
@@ -156,7 +167,7 @@ async function answer(body, env, fetchFn) {
     ];
     const r2 = await call(retryMsgs);
     const raw2 = r2.text.trimStart().startsWith('{') ? r2.text : '{' + r2.text;
-    const script = validateScript(extractJSON(raw2));
+    const script = validateScript(extractJSON(raw2), dynNames);
     return { script, usage: r2.data.usage || null, model: r2.data.model, retried: true };
   }
 }

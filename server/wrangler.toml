@@ -8,3 +8,6 @@ BAZI_MODEL = "deepseek-v4-flash"
 SUPABASE_URL = "https://fqsrhqksayjdfufzquwz.supabase.co"
 SUPABASE_ANON_KEY = "sb_publishable_b8PWkG445brByivc_8JqCw_cUpYDDUo"
 # BAZI_API_KEY 走 secret：npx wrangler secret put BAZI_API_KEY
+
+[triggers]
+crons = ["*/30 * * * *"]   # 素材工厂：每半小时缺口分析（ASSET_FACTORY=off 可停）

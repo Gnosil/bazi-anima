@@ -203,6 +203,36 @@ async function runStep(body, env, fetchFn) {
     return { step, result: r.out, usage: r.usage, retried: r.retried };
   }
 
+  if (step === 'yun') {
+    if (!body.daYun || !body.liuNian) throw new Error('yun 步骤需要 daYun 和 liuNian');
+    const g = (chart.input && chart.input.gender) === 'female' ? '女' : '男';
+    const YUN_EX = '{"caption":"这十年的门往西开，今年那扇最松。","sections":{"主调":"…","事业":"…","财":"…","感情":"…","身体":"…"}}';
+    const base = [
+      { role: 'user', content: [
+        '你是命理师，现在只批「选定的大运+流年」。只输出 JSON，第一个字符是{。',
+        '格式：' + YUN_EX,
+        'sections 五个键固定（主调/事业/财/感情/身体），每条 ≤90 字，第二人称，口语化，术语出现要在同句用人话解释，每条句内带（证据：…）。',
+        'caption ≤50 字，像一句签文，不带术语。',
+        '方法：把大运当第五根柱看它与原局四柱的合冲刑害、对用神的助碍；流年再叠在大运上；流年与大运干支的关系（伏吟/反吟/冲合）要看。',
+        '红线：不提病名、不提任何器官或身体系统名（心血管/肾/泌尿这类词都不行）、不提寿命/灾祸/婚变结局/投资指令。身体条目只说状态感受（易上火/失眠/乏）和作息建议。',
+        '命主：' + g + '命。原局：' + JSON.stringify(slice(chart, 6)) +
+        (body.r6 ? '\n本命定稿摘要：' + JSON.stringify({ 骨架: body.r6.骨架, 领域: body.r6.领域 }) : '') +
+        '\n选定大运：' + JSON.stringify(body.daYun) +
+        '\n选定流年：' + JSON.stringify(body.liuNian) +
+        '\n（示例只示范格式，caption 和内容必须针对这个大运流年原创，禁止照抄示例句子）输出 JSON：',
+      ].join('\n') },
+    ];
+    const validate = o => {
+      if (!o.caption || typeof o.caption !== 'string') throw new Error('缺 caption');
+      if ([...o.caption].length > 60) o.caption = [...o.caption].slice(0, 58).join('') + '…';
+      for (const k of ['主调', '事业', '财', '感情', '身体'])
+        if (typeof (o.sections || {})[k] !== 'string') throw new Error('sections.' + k + ' 缺失');
+      return o;
+    };
+    const r = await callWithRetry(base, validate, env, 1400, fetchFn);
+    return { step, result: r.out, usage: r.usage, retried: r.retried };
+  }
+
   if (step === 'voiceA' || step === 'voiceB') {
     if (!body.r6) throw new Error('voice 步骤需要 r6（V6 的 reading）');
     const base = [{ role: 'user', content: voicePrompt(step === 'voiceA' ? 'A' : 'B', chart, body.r6, body.diffs) }];

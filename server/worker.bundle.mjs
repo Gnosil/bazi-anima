@@ -11,8 +11,9 @@ const SPRITES_OK = {
   basket: [], umbrella: [], wall: [], lid: [], bubbles: ['rise'], crack: [], qmark: ['blink'], ban: [], orbit: ['wuxing'], tiles: [],
 };
 
-function validateScript(sc) {
+function validateScript(sc, dynNames) {
   const err = m => { throw new Error('脚本校验失败: ' + m); };
+  const dyn = dynNames instanceof Set ? dynNames : new Set(dynNames || []);
   if (!sc || typeof sc !== 'object') err('不是对象');
   if (!sc.caption || typeof sc.caption !== 'string') err('caption 必填');
   if ([...sc.caption].length > 60) err('caption 超长');
@@ -23,10 +24,15 @@ function validateScript(sc) {
     actors: [],
   };
   for (const a of (sc.actors || []).slice(0, 12)) {
-    if (!Object.prototype.hasOwnProperty.call(SPRITES_OK, a.sprite)) err('未知 sprite: ' + a.sprite);
-    const ok = SPRITES_OK[a.sprite];
-    if (a.behavior && ok.length && !ok.includes(a.behavior)) err(a.sprite + ' 不支持 ' + a.behavior);
-    out.actors.push({ ...a, behavior: a.behavior || ok[0] || null });
+    const builtin = Object.prototype.hasOwnProperty.call(SPRITES_OK, a.sprite);
+    if (!builtin && !dyn.has(a.sprite)) err('未知 sprite: ' + a.sprite);
+    if (builtin) {
+      const ok = SPRITES_OK[a.sprite];
+      if (a.behavior && ok.length && !ok.includes(a.behavior)) err(a.sprite + ' 不支持 ' + a.behavior);
+      out.actors.push({ ...a, behavior: a.behavior || ok[0] || null });
+    } else {
+      out.actors.push({ ...a, behavior: ['static', 'blink'].includes(a.behavior) ? a.behavior : 'static' });
+    }
   }
   if (!out.actors.length) err('actors 为空');
   return out;
@@ -87,7 +93,7 @@ function chartDigest(chart) {
 
 /* 中转对 system 字段支持不可靠 → 规范放第一个 user turn，few-shot 锁格式。
  * 实测：纯 system 提示会被 deepseek-v4-flash 无视，few-shot 后 100% 出合法 DSL。 */
-function buildMessages(question, chart, readingDigest) {
+function buildMessages(question, chart, readingDigest, dynLine) {
   return [
     { role: 'user', content: SYSTEM + '\n\n命盘：' + JSON.stringify({ bazi: chart.bazi, wuXing: chart.wuXing && chart.wuXing.percent }) + '\n问题：钱怎么样' },
     { role: 'assistant', content: EX_MONEY },
@@ -95,7 +101,7 @@ function buildMessages(question, chart, readingDigest) {
     { role: 'assistant', content: EX_BOUND },
     { role: 'user', content: '命盘：' + JSON.stringify(chartDigest(chart)) +
         (readingDigest ? '\n已有解读块：' + JSON.stringify(readingDigest) : '') +
-        '\n问题：' + question + '\n（示例只示范 JSON 格式；caption 和画面必须针对这个问题和这张盘原创，禁止照抄示例句子）' },
+        (dynLine || '') + '\n问题：' + question + '\n（示例只示范 JSON 格式；caption 和画面必须针对这个问题和这张盘原创，禁止照抄示例句子）' },
   ];
 }
 
@@ -112,11 +118,16 @@ function extractJSON(text) {
  * 主入口。env: {BAZI_API_URL, BAZI_API_KEY, BAZI_MODEL}
  * body: {question, chart, readingDigest?}
  */
-async function answer(body, env, fetchFn) {
+async function answer(body, env, fetchFn, dynAssets) {
   const f = fetchFn || fetch;
   const question = String(body.question || '').slice(0, 200);
   if (!question) throw new Error('question 必填');
   if (!body.chart || !body.chart.bazi) throw new Error('chart 必填（前端把 chart.json 带上）');
+  const dynNames = new Set((dynAssets || []).map(a => a.name));
+  const dynLine = (dynAssets && dynAssets.length)
+    ? '\n可用扩展素材（behavior 只有 static|blink，坐标 x,y；按意象选用）：' +
+      dynAssets.map(a => a.name + '(' + a.label + '=' + a.symbolism + ')').join('；')
+    : '';
 
   const call = async (messages) => {
     const res = await f(env.BAZI_API_URL || 'https://api.openai-next.com/v1/messages', {
@@ -139,12 +150,12 @@ async function answer(body, env, fetchFn) {
     return { text, data };
   };
 
-  const base = buildMessages(question, body.chart, body.readingDigest);
+  const base = buildMessages(question, body.chart, body.readingDigest, dynLine);
   let { text, data } = await call(base);
   let raw = text;
 
   try {
-    const script = validateScript(extractJSON(raw));
+    const script = validateScript(extractJSON(raw), dynNames);
     return { script, usage: data.usage || null, model: data.model, retried: false };
   } catch (e1) {
     // 重试一次：把不合法输出和错误一起打回去
@@ -157,12 +168,12 @@ async function answer(body, env, fetchFn) {
     ];
     const r2 = await call(retryMsgs);
     const raw2 = r2.text.trimStart().startsWith('{') ? r2.text : '{' + r2.text;
-    const script = validateScript(extractJSON(raw2));
+    const script = validateScript(extractJSON(raw2), dynNames);
     return { script, usage: r2.data.usage || null, model: r2.data.model, retried: true };
   }
 }
 
-return { answer: typeof answer !== 'undefined' ? answer : null, runStep: typeof runStep !== 'undefined' ? runStep : null, saveAsk: typeof saveAsk !== 'undefined' ? saveAsk : null, saveReading: typeof saveReading !== 'undefined' ? saveReading : null, enabled: typeof enabled !== 'undefined' ? enabled : null };
+return { answer: typeof answer !== 'undefined' ? answer : null, runStep: typeof runStep !== 'undefined' ? runStep : null, saveAsk: typeof saveAsk !== 'undefined' ? saveAsk : null, saveReading: typeof saveReading !== 'undefined' ? saveReading : null, enabled: typeof enabled !== 'undefined' ? enabled : null, gapRun: typeof gapRun !== 'undefined' ? gapRun : null, fetchApproved: typeof fetchApproved !== 'undefined' ? fetchApproved : null };
 })();
 const READING = (() => {
 /* 完整命书流水线 —— V1..V6 迭代推理 + voiceA/voiceB 成文。
@@ -369,6 +380,36 @@ async function runStep(body, env, fetchFn) {
     return { step, result: r.out, usage: r.usage, retried: r.retried };
   }
 
+  if (step === 'yun') {
+    if (!body.daYun || !body.liuNian) throw new Error('yun 步骤需要 daYun 和 liuNian');
+    const g = (chart.input && chart.input.gender) === 'female' ? '女' : '男';
+    const YUN_EX = '{"caption":"这十年的门往西开，今年那扇最松。","sections":{"主调":"…","事业":"…","财":"…","感情":"…","身体":"…"}}';
+    const base = [
+      { role: 'user', content: [
+        '你是命理师，现在只批「选定的大运+流年」。只输出 JSON，第一个字符是{。',
+        '格式：' + YUN_EX,
+        'sections 五个键固定（主调/事业/财/感情/身体），每条 ≤90 字，第二人称，口语化，术语出现要在同句用人话解释，每条句内带（证据：…）。',
+        'caption ≤50 字，像一句签文，不带术语。',
+        '方法：把大运当第五根柱看它与原局四柱的合冲刑害、对用神的助碍；流年再叠在大运上；流年与大运干支的关系（伏吟/反吟/冲合）要看。',
+        '红线：不提病名、不提任何器官或身体系统名（心血管/肾/泌尿这类词都不行）、不提寿命/灾祸/婚变结局/投资指令。身体条目只说状态感受（易上火/失眠/乏）和作息建议。',
+        '命主：' + g + '命。原局：' + JSON.stringify(slice(chart, 6)) +
+        (body.r6 ? '\n本命定稿摘要：' + JSON.stringify({ 骨架: body.r6.骨架, 领域: body.r6.领域 }) : '') +
+        '\n选定大运：' + JSON.stringify(body.daYun) +
+        '\n选定流年：' + JSON.stringify(body.liuNian) +
+        '\n（示例只示范格式，caption 和内容必须针对这个大运流年原创，禁止照抄示例句子）输出 JSON：',
+      ].join('\n') },
+    ];
+    const validate = o => {
+      if (!o.caption || typeof o.caption !== 'string') throw new Error('缺 caption');
+      if ([...o.caption].length > 60) o.caption = [...o.caption].slice(0, 58).join('') + '…';
+      for (const k of ['主调', '事业', '财', '感情', '身体'])
+        if (typeof (o.sections || {})[k] !== 'string') throw new Error('sections.' + k + ' 缺失');
+      return o;
+    };
+    const r = await callWithRetry(base, validate, env, 1400, fetchFn);
+    return { step, result: r.out, usage: r.usage, retried: r.retried };
+  }
+
   if (step === 'voiceA' || step === 'voiceB') {
     if (!body.r6) throw new Error('voice 步骤需要 r6（V6 的 reading）');
     const base = [{ role: 'user', content: voicePrompt(step === 'voiceA' ? 'A' : 'B', chart, body.r6, body.diffs) }];
@@ -379,7 +420,7 @@ async function runStep(body, env, fetchFn) {
   throw new Error('未知 step: ' + step);
 }
 
-return { answer: typeof answer !== 'undefined' ? answer : null, runStep: typeof runStep !== 'undefined' ? runStep : null, saveAsk: typeof saveAsk !== 'undefined' ? saveAsk : null, saveReading: typeof saveReading !== 'undefined' ? saveReading : null, enabled: typeof enabled !== 'undefined' ? enabled : null };
+return { answer: typeof answer !== 'undefined' ? answer : null, runStep: typeof runStep !== 'undefined' ? runStep : null, saveAsk: typeof saveAsk !== 'undefined' ? saveAsk : null, saveReading: typeof saveReading !== 'undefined' ? saveReading : null, enabled: typeof enabled !== 'undefined' ? enabled : null, gapRun: typeof gapRun !== 'undefined' ? gapRun : null, fetchApproved: typeof fetchApproved !== 'undefined' ? fetchApproved : null };
 })();
 const STORE = (() => {
 /* Supabase 存储层 —— 每张盘/每本命书/每次提问都落库，互相带外键。
@@ -465,7 +506,167 @@ async function saveReading(chart, blocks, process, meta, env, fetchFn) {
   return chartId;
 }
 
-return { answer: typeof answer !== 'undefined' ? answer : null, runStep: typeof runStep !== 'undefined' ? runStep : null, saveAsk: typeof saveAsk !== 'undefined' ? saveAsk : null, saveReading: typeof saveReading !== 'undefined' ? saveReading : null, enabled: typeof enabled !== 'undefined' ? enabled : null };
+return { answer: typeof answer !== 'undefined' ? answer : null, runStep: typeof runStep !== 'undefined' ? runStep : null, saveAsk: typeof saveAsk !== 'undefined' ? saveAsk : null, saveReading: typeof saveReading !== 'undefined' ? saveReading : null, enabled: typeof enabled !== 'undefined' ? enabled : null, gapRun: typeof gapRun !== 'undefined' ? gapRun : null, fetchApproved: typeof fetchApproved !== 'undefined' ? fetchApproved : null };
+})();
+const ASSETS = (() => {
+/* 素材工厂 —— 每 30 分钟一次的缺口分析：
+ * 读最近的解读/提问 → 对比已有素材 → 让 DeepSeek 发明缺的意象（文本点阵）→ 校验入库。
+ * 我们的 sprite 本来就是字符矩阵，所以「画画」= 结构化文本生成，纯文本模型就能干。
+ */
+
+const BUILTIN = ['hero','ghost','rival','coin','flame','torch','basket','umbrella','wall','lid','bubbles','crack','qmark','ban','orbit','tiles'];
+const PER_RUN = 6;          // 每轮最多造几个（半小时一轮 = 每天上限 ~288，实际远低于此）
+
+function sb(env, path, opts) {
+  return fetch(env.SUPABASE_URL + '/rest/v1/' + path, {
+    ...opts,
+    headers: {
+      'Content-Type': 'application/json',
+      apikey: env.SUPABASE_ANON_KEY,
+      Authorization: 'Bearer ' + env.SUPABASE_ANON_KEY,
+      ...(opts && opts.headers),
+    },
+  });
+}
+
+/* 机械修复：行宽/行数不对就补齐或截断（画歪是常事，修一下再验） */
+function normalizeGrid(grid, size) {
+  if (!Array.isArray(grid)) return grid;
+  const rows = grid.map(r => {
+    r = String(r || '').replace(/[^.obhd]/g, '.');
+    return r.length > size ? r.slice(0, size) : r + '.'.repeat(size - r.length);
+  });
+  while (rows.length < size) rows.push('.'.repeat(size));
+  return rows.slice(0, size);
+}
+
+/* ── 点阵校验：方阵、字符集、填充率、非纯矩形 ── */
+function validGrid(grid, size) {
+  if (!Array.isArray(grid) || grid.length !== size) return '行数≠' + size;
+  let filled = 0;
+  for (const row of grid) {
+    if (typeof row !== 'string' || row.length !== size) return '行宽≠' + size;
+    if (/[^.obhd]/.test(row)) return '含非法字符（只许 . o b h d）';
+    filled += (row.match(/[obhd]/g) || []).length;
+  }
+  const ratio = filled / (size * size);
+  if (ratio < 0.08) return '太空（填充 ' + (ratio * 100 | 0) + '%）';
+  if (ratio > 0.72) return '太满（填充 ' + (ratio * 100 | 0) + '%）';
+  return null;
+}
+
+function validAsset(a) {
+  if (!/^[a-z][a-z0-9_]{2,15}$/.test(a.name || '')) return 'name 不是合法 slug';
+  if (BUILTIN.includes(a.name)) return 'name 与内置 sprite 冲突';
+  if (!a.label || typeof a.label !== 'string') return '缺 label';
+  if (!a.symbolism || typeof a.symbolism !== 'string') return '缺 symbolism';
+  const size = a.size === 8 ? 8 : 16;
+  a.grid = normalizeGrid(a.grid, size);
+  const g = validGrid(a.grid, size);
+  if (g) return g;
+  for (const k of ['o', 'b', 'h']) {
+    if (!/^#[0-9A-Fa-f]{6}$/.test((a.palette || {})[k] || '')) return 'palette.' + k + ' 不是 #RRGGBB';
+  }
+  return null;
+}
+
+const FACTORY_PROMPT = [
+  '你是像素素材设计师。为八字命理动画舞台补充新的 16×16 像素道具。只输出 JSON。',
+  '',
+  '点阵格式：16 行字符串，每行 16 个字符。字符集：. 透明 | o 描边(最深) | b 主体色 | h 高光 | d 暗部。',
+  '画法要领：外轮廓用 o 描边；主体 b；受光面点几个 h；底部/背光面用 d；居中构图；下方留 1-2 行空（物体要能"放在地上"）。',
+  '填充率 15%-60%。必须是那个物体的可辨认剪影，不许画抽象色块、不许只画一圈椭圆轮廓。',
+  '左右对称的物体（钟/秤/镜/灯）先想清楚中轴在第 8 列，两侧镜像。',
+  '画完每个都在脑内逐行渲染自检一遍：一个没见过的人能认出这是什么吗？认不出就重画。',
+  '',
+  '输出：{"assets":[{"name":"英文slug","label":"中文名","size":16,',
+  '"grid":["16行×16字符"...],"palette":{"o":"#1A1626","b":"#主体色","h":"#高光色","d":"#暗部色"},',
+  '"symbolism":"命理里它表达什么概念（一句话）","behaviors":["static","blink"]}]}',
+  '',
+  '配色遵守暗夜像素风：饱和度中高、明度分三档，参考 火#F0553D 金#F5C542 水#3D9BE8 木#3FBF6A 土#D98E36 紫#C77DFF。',
+].join('\n');
+
+const EX_ASSET = '{"assets":[{"name":"lantern","label":"灯笼","size":16,"grid":["................","......oo........",".....o..o.......","....oooooo......","...obbbbbbo.....","...obhhbbbo.....","...obhbbbbo.....","...obbbbbbo.....","...obbbbdbo.....","...obbbddbo.....","....oooooo......","......oo........",".....oooo.......","................","................","................"],"palette":{"o":"#5A1A1A","b":"#F0553D","h":"#FFA36B","d":"#A83226"},"symbolism":"指引与温度——运势里的一点光","behaviors":["static","blink"]}]}';
+
+async function llm(env, messages, maxTokens) {
+  const res = await fetch(env.BAZI_API_URL || 'https://api.openai-next.com/v1/messages', {
+    method: 'POST',
+    headers: { 'x-api-key': env.BAZI_API_KEY, 'anthropic-version': '2023-06-01', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model: env.BAZI_MODEL || 'deepseek-v4-flash', max_tokens: maxTokens, temperature: 0.9, messages }),
+  });
+  if (!res.ok) throw new Error('上游 ' + res.status);
+  const data = await res.json();
+  return (data.content || []).map(c => c.text || '').join('');
+}
+
+function extractJSON(text) {
+  const m = text.match(/\{[\s\S]*\}/);
+  if (m) { try { return JSON.parse(m[0]); } catch (e) { /* */ } }
+  throw new Error('无合法 JSON');
+}
+
+/* ── 主流程：缺口分析 → 生成 → 校验 → 入库 ── */
+async function gapRun(env) {
+  if (env.ASSET_FACTORY === 'off') return { skipped: 'ASSET_FACTORY=off' };
+
+  // 1) 最近的解读语料（captions + 命书开头）
+  const [asksR, readsR, assetsR] = await Promise.all([
+    sb(env, 'asks?select=question,script->caption&order=created_at.desc&limit=30', {}),
+    sb(env, 'readings?select=blocks&order=created_at.desc&limit=5', {}),
+    sb(env, 'assets?select=name,label&limit=500', {}),
+  ]);
+  const asks = asksR.ok ? await asksR.json() : [];
+  const reads = readsR.ok ? await readsR.json() : [];
+  const existing = assetsR.ok ? await assetsR.json() : [];
+
+  const corpus = [
+    ...asks.map(a => (a.question || '') + '→' + (a.caption || '')),
+    ...reads.flatMap(r => (r.blocks || []).map(b => (b.caption || '') + ' ' + String(b.text || '').slice(0, 60))),
+  ].filter(Boolean).slice(0, 40);
+  const have = [...BUILTIN, ...existing.map(a => a.name + '(' + a.label + ')')];
+
+  // 2) 缺口 + 生成（一次调用完成）
+  const messages = [
+    { role: 'user', content: FACTORY_PROMPT + '\n\n示例输出（仅示范格式，禁止照抄）：' },
+    { role: 'assistant', content: EX_ASSET },
+    { role: 'user', content:
+      '已有素材（不许重复、不许近义重复）：' + have.join(', ') +
+      '\n\n最近的解读语料（从中找被提到、但上面素材表达不了的具体意象；也可补命理常用意象如 桥/门/秤/钟/舟/印/剑/书/镜/山/月/井/绳结/种子）：\n' +
+      corpus.join('\n') +
+      '\n\n造 ' + PER_RUN + ' 个新素材。每个都要跟命理解读用得上，symbolism 写清楚什么概念用它。输出 JSON：' },
+  ];
+  const out = extractJSON(await llm(env, messages, 3600));
+  const cands = Array.isArray(out.assets) ? out.assets : [];
+
+  // 3) 校验 + 入库
+  const results = { ok: [], rejected: [] };
+  for (const a of cands.slice(0, PER_RUN)) {
+    const bad = validAsset(a);
+    if (bad) { results.rejected.push({ name: a.name, why: bad }); continue; }
+    const r = await sb(env, 'assets', {
+      method: 'POST',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({
+        name: a.name, label: a.label, size: a.size === 8 ? 8 : 16, grid: a.grid,
+        palette: { o: a.palette.o, b: a.palette.b, h: a.palette.h, d: a.palette.d || a.palette.o },
+        symbolism: a.symbolism, behaviors: ['static', 'blink'], tags: a.tags || [],
+      }),
+    });
+    if (r.ok) results.ok.push(a.name + '(' + a.label + ')');
+    else if (r.status === 409) results.rejected.push({ name: a.name, why: '重名' });
+    else results.rejected.push({ name: a.name, why: 'db ' + r.status });
+  }
+  return results;
+}
+
+/* 已批准素材（给 /assets 端点和提示词白名单） */
+async function fetchApproved(env, full) {
+  const sel = full ? 'name,label,size,grid,palette,symbolism,behaviors' : 'name,label,symbolism';
+  const r = await sb(env, 'assets?select=' + sel + '&status=eq.approved&order=created_at.asc&limit=200', {});
+  return r.ok ? await r.json() : [];
+}
+
+return { answer: typeof answer !== 'undefined' ? answer : null, runStep: typeof runStep !== 'undefined' ? runStep : null, saveAsk: typeof saveAsk !== 'undefined' ? saveAsk : null, saveReading: typeof saveReading !== 'undefined' ? saveReading : null, enabled: typeof enabled !== 'undefined' ? enabled : null, gapRun: typeof gapRun !== 'undefined' ? gapRun : null, fetchApproved: typeof fetchApproved !== 'undefined' ? fetchApproved : null };
 })();
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -473,8 +674,17 @@ const CORS = {
   'Access-Control-Allow-Headers': 'Content-Type',
 };
 export default {
+  async scheduled(event, env, ctx) {
+    // 每 30 分钟：缺口分析 → 造素材 → 入库（wrangler.toml [triggers] 配置）
+    ctx.waitUntil(ASSETS.gapRun(env).then(r => console.log('[factory]', JSON.stringify(r))).catch(e => console.warn('[factory]', e.message)));
+  },
   async fetch(req, env, ctx) {
     if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
+    const route0 = new URL(req.url).pathname.split('/').filter(Boolean).pop() || 'ask';
+    if (req.method === 'GET' && route0 === 'assets') {
+      const list = await ASSETS.fetchApproved(env, true);
+      return Response.json({ assets: list }, { headers: { ...CORS, 'Cache-Control': 'public, max-age=300' } });
+    }
     if (req.method !== 'POST') return Response.json({ error: 'POST only' }, { status: 405, headers: CORS });
     if (!env.BAZI_API_KEY) return Response.json({ error: '未配置 BAZI_API_KEY（npx wrangler secret put BAZI_API_KEY）' }, { status: 500, headers: CORS });
     try {
@@ -490,7 +700,14 @@ export default {
         const out = await READING.runStep(body, env);
         return Response.json(out, { headers: CORS });
       }
-      const out = await CORE.answer(body, env);
+      let dyn = [];
+      try {
+        if (!globalThis.__dynCache || Date.now() - globalThis.__dynCache.t > 300000) {
+          globalThis.__dynCache = { t: Date.now(), list: await ASSETS.fetchApproved(env, false) };
+        }
+        dyn = globalThis.__dynCache.list;
+      } catch (e) { /* 素材层失败不影响回答 */ }
+      const out = await CORE.answer(body, env, undefined, dyn);
       // 提问自动落库（不阻塞响应，失败不影响用户）
       if (STORE.enabled(env)) ctx.waitUntil(
         STORE.saveAsk(body.chart, body.question, out.script, { model: out.model, retried: out.retried }, env)

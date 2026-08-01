@@ -340,11 +340,17 @@ function validateScript(sc) {
     backdrop: ['ground','rain','none'].includes(sc.backdrop) ? sc.backdrop : 'ground',
     actors: [],
   };
+  const DYN = (typeof window !== 'undefined' && window.DYN_ASSETS) || {};
   for (const a of (sc.actors || []).slice(0, 12)) {
-    if (!SPRITES_OK.hasOwnProperty(a.sprite)) err('未知 sprite: ' + a.sprite);
-    const ok = SPRITES_OK[a.sprite];
-    if (a.behavior && ok.length && !ok.includes(a.behavior)) err(a.sprite + ' 不支持 behavior: ' + a.behavior);
-    out.actors.push({ ...a, behavior: a.behavior || ok[0] || null });
+    const builtin = SPRITES_OK.hasOwnProperty(a.sprite);
+    if (!builtin && !DYN[a.sprite]) err('未知 sprite: ' + a.sprite);
+    if (builtin) {
+      const ok = SPRITES_OK[a.sprite];
+      if (a.behavior && ok.length && !ok.includes(a.behavior)) err(a.sprite + ' 不支持 behavior: ' + a.behavior);
+      out.actors.push({ ...a, behavior: a.behavior || ok[0] || null });
+    } else {
+      out.actors.push({ ...a, behavior: ['static','blink'].includes(a.behavior) ? a.behavior : 'static' });
+    }
   }
   if (!out.actors.length) err('actors 为空');
   return out;
@@ -353,6 +359,23 @@ function validateScript(sc) {
 function drawActor(ctx, t, S, a) {
   const s = S.s, num = (v, d) => (typeof v === 'number' ? v : d);
   const rng = Array.isArray(a.range) ? a.range : [8, 96];
+  // 素材工厂的扩展素材（Supabase 拉取，window.DYN_ASSETS）
+  const DYN = (typeof window !== 'undefined' && window.DYN_ASSETS) || {};
+  if (!SPRITES_OK.hasOwnProperty(a.sprite) && DYN[a.sprite]) {
+    if (a.behavior === 'blink' && t % 16 >= 11) return;
+    const asset = DYN[a.sprite], n = asset.size || 16;
+    const x = num(a.x, 78), y = num(a.y, GROUND + 14 - n);
+    for (let ry = 0; ry < n; ry++) {
+      const row = asset.grid[ry] || '';
+      for (let rx = 0; rx < n; rx++) {
+        const col = asset.palette[row[rx]];
+        if (!col) continue;
+        ctx.fillStyle = col;
+        ctx.fillRect((x + rx) * s, (y + ry) * s, s, s);
+      }
+    }
+    return;
+  }
   switch (a.sprite) {
     case 'hero': {
       let x = num(a.x, W / 2 - 16);
