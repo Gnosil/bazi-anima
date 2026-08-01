@@ -170,7 +170,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;heigh
   </div>
   <button class="goBtn" id="fGo">起　盘</button>
   <div class="demoLink" id="fDemo">直接看演示盘（含完整命书）→</div>
-  <div class="dim" style="margin-top:24px;text-align:center">仅供娱乐 · 生辰信息只在你的浏览器里计算，不上传</div>
+  <div class="dim" style="margin-top:24px;text-align:center">仅供娱乐 · 排盘在你的浏览器本地完成<br>提问或生成命书时，盘面数据会发送到服务器用于生成与存档</div>
 </div>
 
 <!-- 视图二：命书（原页面） -->
@@ -628,6 +628,10 @@ async function genFull(){
     CUR_PROCESS=vsteps.map((v,i)=>({version:'V'+(i+1),title:['身强弱·五行','宫位','藏干·坐支','纳音','十神','神煞'][i],
       unlockedDimensions:[],diff:v.diff||[],conflicts:v.conflicts||[]}));
     renderFinal();
+    // 归档到服务端（盘+命书+推理过程，失败不影响使用）
+    fetch(url.replace(/\/reading$/,'/save'),{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({chart:CHART,blocks:newBlocks.map(({anim,...b})=>b),process:vsteps,model:'deepseek-v4-flash'})})
+      .catch(()=>{});
     // 下载链接
     if(!$('#dlFinal')){
       const a=document.createElement('span');a.id='dlFinal';a.className='dlLink';a.textContent='↓ 保存命书';

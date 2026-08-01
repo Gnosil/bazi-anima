@@ -4,25 +4,40 @@ const fs = require('fs'), path = require('path');
 const wrap = (file, ret) => {
   let code = fs.readFileSync(path.join(__dirname, file), 'utf8');
   code = code.replace(/^'use strict';\n/, '').replace(/\nmodule\.exports[\s\S]*$/, '');
-  return `const ${ret} = (() => {\n${code}\nreturn { answer: typeof answer !== 'undefined' ? answer : null, runStep: typeof runStep !== 'undefined' ? runStep : null };\n})();`;
+  return `const ${ret} = (() => {\n${code}\nreturn { answer: typeof answer !== 'undefined' ? answer : null, runStep: typeof runStep !== 'undefined' ? runStep : null, saveAsk: typeof saveAsk !== 'undefined' ? saveAsk : null, saveReading: typeof saveReading !== 'undefined' ? saveReading : null, enabled: typeof enabled !== 'undefined' ? enabled : null };\n})();`;
 };
-const out = `// 自动生成：node build-worker.js —— 不要手改，改 lib/core.js / lib/reading.js
+const out = `// 自动生成：node build-worker.js —— 不要手改，改 lib/*.js
 ${wrap('lib/core.js', 'CORE')}
 ${wrap('lib/reading.js', 'READING')}
+${wrap('lib/store.js', 'STORE')}
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type',
 };
 export default {
-  async fetch(req, env) {
+  async fetch(req, env, ctx) {
     if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
     if (req.method !== 'POST') return Response.json({ error: 'POST only' }, { status: 405, headers: CORS });
     if (!env.BAZI_API_KEY) return Response.json({ error: '未配置 BAZI_API_KEY（npx wrangler secret put BAZI_API_KEY）' }, { status: 500, headers: CORS });
     try {
       const body = await req.json();
-      const isReading = new URL(req.url).pathname.split('/').filter(Boolean).pop() === 'reading';
-      const out = isReading ? await READING.runStep(body, env) : await CORE.answer(body, env);
+      const route = new URL(req.url).pathname.split('/').filter(Boolean).pop() || 'ask';
+      if (route === 'save') {
+        // 前端生成完命书后回传归档：{chart, blocks, process, model}
+        if (!body.chart || !body.blocks) return Response.json({ error: 'chart 和 blocks 必填' }, { status: 422, headers: CORS });
+        const chartId = await STORE.saveReading(body.chart, body.blocks, body.process, { model: body.model }, env);
+        return Response.json({ ok: true, chartId }, { headers: CORS });
+      }
+      if (route === 'reading') {
+        const out = await READING.runStep(body, env);
+        return Response.json(out, { headers: CORS });
+      }
+      const out = await CORE.answer(body, env);
+      // 提问自动落库（不阻塞响应，失败不影响用户）
+      if (STORE.enabled(env)) ctx.waitUntil(
+        STORE.saveAsk(body.chart, body.question, out.script, { model: out.model, retried: out.retried }, env)
+          .catch(e => console.warn('[store] ask 落库失败:', e.message)));
       return Response.json(out, { headers: CORS });
     } catch (e) {
       return Response.json({ error: e.message }, { status: 422, headers: CORS });
