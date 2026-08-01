@@ -68,7 +68,27 @@ function blit32(ctx, grid, palette, x, y, s, flip) {
 const H32 = (typeof HERO32 !== 'undefined' && HERO32) ? HERO32
           : (typeof module === 'object' ? (function(){ try { return require('../assets/hero32.js'); } catch(e){ return null; } })() : null);
 function drawHero(ctx, frameName, S, x, y) {
-  if (H32 && H32.frames[frameName]) { blit32(ctx, H32.frames[frameName], H32.palette, x, y, S.s); return; }
+  if (H32 && H32.frames[frameName]) {
+    const n = H32.size || H32.frames[frameName].length;
+    if (n > 48) {
+      // 精细网格：主角每源像素 = 半个逻辑格（HD-2D 式混合密度），视觉尺寸 n/2 逻辑格
+      const vis = n / 2, ps = S.s / 2;
+      const dx = (x + (32 - vis) / 2) * S.s, dy = ((GROUND + 14) - vis) * S.s;
+      const grid = H32.frames[frameName];
+      for (let ry = 0; ry < n; ry++) {
+        const row = grid[ry];
+        for (let rx = 0; rx < n; rx++) {
+          const v = row[rx];
+          if (v < 0) continue;
+          ctx.fillStyle = H32.palette[v];
+          ctx.fillRect(dx + rx * ps, dy + ry * ps, ps, ps);
+        }
+      }
+      return;
+    }
+    blit32(ctx, H32.frames[frameName], H32.palette, x + ((32 - n) >> 1), (GROUND + 14) - n, S.s);
+    return;
+  }
   const fb = { idle0: CH.idle0, idle1: CH.idle1, walk0: CH.walk0, walk1: CH.walk1,
                curl: CH.curl, shrug: CH.shrug, cheer: CH.cheer }[frameName] || CH.idle0;
   blit(ctx, fb, S.pal, x, y, S.s, false, 2);
@@ -383,9 +403,9 @@ function drawActor(ctx, t, S, a) {
       break;
     }
     case 'umbrella': {
-      const x = num(a.x, 34), up = { o:'#1B7F6B', b:'#5CE1C4' };
-      for (let i = 0; i < 32; i++) { const yy = 6 + Math.round(Math.abs(i - 16) * 0.3); px(ctx, x + i, yy, s, up.b); px(ctx, x + i, yy + 1, s, up.o); }
-      rect(ctx, x + 15, 8, 1, 10, s, up.o);
+      const x = num(a.x, 34), y0 = num(a.y, 6), up = { o:'#1B7F6B', b:'#5CE1C4' };
+      for (let i = 0; i < 32; i++) { const yy = y0 + Math.round(Math.abs(i - 16) * 0.3); px(ctx, x + i, yy, s, up.b); px(ctx, x + i, yy + 1, s, up.o); }
+      rect(ctx, x + 15, y0 + 2, 1, 10, s, up.o);
       break;
     }
     case 'wall': {

@@ -24,7 +24,6 @@
 import sys, json, os
 from PIL import Image
 
-SIZE = 32
 TRANSPARENT = -1
 
 def load_and_fit(path, size):
@@ -40,7 +39,7 @@ def load_and_fit(path, size):
     canvas.paste(im, ((size - nw) // 2, size - nh))  # 底部对齐（脚踩地）
     return canvas
 
-def quantize(im, max_colors=10):
+def quantize(im, max_colors=14):
     px = im.load()
     counts = {}
     for y in range(im.height):
@@ -131,7 +130,11 @@ def derive(base):
 def main():
     if len(sys.argv) < 2:
         print(__doc__); sys.exit(0)
-    src = sys.argv[1]
+    args = [a for a in sys.argv[1:] if not a.startswith('--')]
+    src = args[0]
+    src2 = args[1] if len(args) > 1 else None   # 第二张 = idle1 变体
+    SIZE = int(sys.argv[sys.argv.index('--size')+1]) if '--size' in sys.argv else 32
+    NCOL = int(sys.argv[sys.argv.index('--colors')+1]) if '--colors' in sys.argv else 14
     sheet = 0
     if '--sheet' in sys.argv: sheet = int(sys.argv[sys.argv.index('--sheet')+1])
     if sheet:
@@ -151,8 +154,17 @@ def main():
         frames = d
     else:
         im = load_and_fit(src, SIZE)
-        colors, base = quantize(im)
-        frames = derive(base)
+        if src2:
+            im2 = load_and_fit(src2, SIZE)
+            strip = Image.new('RGBA', (SIZE*2, SIZE), (0,0,0,0))
+            strip.paste(im, (0,0)); strip.paste(im2, (SIZE,0))
+            colors, big = quantize(strip, NCOL)
+            base = [row[:SIZE] for row in big]
+            idle1 = [row[SIZE:] for row in big]
+            frames = derive(base); frames['idle1'] = idle1
+        else:
+            colors, base = quantize(im, NCOL)
+            frames = derive(base)
 
     out = {
         'size': SIZE,

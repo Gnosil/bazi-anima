@@ -56,7 +56,7 @@
   /* 没有预生成命书（新盘离线）时的通用场景 —— 画面按盘走，字幕只说画面 + 引导接 API */
   const GENERIC = {
     love:   { caption: '配偶宫在你的日柱。想听这条线的细节，得让命理师上线（接 API）再问。',
-              actors: [{sprite:'umbrella',x:30},{sprite:'hero',behavior:'idle',x:24},{sprite:'ghost',x:70}] },
+              actors: [{sprite:'umbrella',x:30,y:1},{sprite:'hero',behavior:'idle',x:24},{sprite:'ghost',x:70}] },
     wealth: { caption: '钱的形状每张盘不一样——币怎么掉、筐在哪，要问在线的命理师。',
               actors: [{sprite:'coin',behavior:'fall',x:10,count:4},{sprite:'hero',behavior:'idle'}] },
     career: { caption: '火把哪支亮着，得对着你的大运看——在线提问能给你具体的。',
