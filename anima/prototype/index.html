@@ -414,9 +414,10 @@ $('#modeBtn').onclick=()=>{
 };
 showPara(0);
 
-/* 后端地址：URL 里带 #api=https://xxx/api/ask 即接通实时生成 */
+/* 后端：默认接线上 worker；URL 带 #api=… 可覆盖；#offline 强制离线 */
 const mApi=location.hash.match(/#api=(.+)/);
-if(mApi) window.BAZI_API=decodeURIComponent(mApi[1]);
+window.BAZI_API = mApi ? decodeURIComponent(mApi[1])
+  : (location.hash==='#offline' ? '' : 'https://bazi-ask.gnosil.workers.dev');
 
 /* 开发者视图（仅演示盘有推理过程） */
 $('#devBtn').onclick=()=>{
