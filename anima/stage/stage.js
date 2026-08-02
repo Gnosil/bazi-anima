@@ -67,40 +67,7 @@ function blit32(ctx, grid, palette, x, y, s, flip) {
 }
 const H32 = (typeof HERO32 !== 'undefined' && HERO32) ? HERO32
           : (typeof module === 'object' ? (function(){ try { return require('../assets/hero32.js'); } catch(e){ return null; } })() : null);
-const CAT_FRAME = { width:256, height:128 };
-function loadCatSprites(definition) {
-  if (!definition || typeof Image === 'undefined') return null;
-  const sprites = {};
-  for (const [name, source] of Object.entries(definition)) {
-    const image = new Image(); image.src = source; sprites[name] = image;
-  }
-  return sprites;
-}
-function drawCat(ctx, t, S, behavior, x, y, flip = false) {
-  const sprites = S.catSprites;
-  if (!sprites) return false;
-  let image = sprites.idleSheet;
-  let sourceX = Math.floor(t / 2) % 4 * CAT_FRAME.width;
-  if (behavior === 'walk') { image = sprites.hop; sourceX = 0; }
-  if (behavior === 'curl') { image = sprites.cast; sourceX = 0; }
-  if (behavior === 'shrug' || behavior === 'cheer') { image = sprites.beckon; sourceX = 0; }
-  if (!image || !image.complete || !image.naturalWidth) return false;
-  const bobY = behavior === 'idle' && t % 8 >= 4 ? -1 : 0;
-  const dx = Math.round(x - 13) * S.s;
-  const dy = Math.round(y + bobY) * S.s;
-  const dw = 58 * S.s, dh = 29 * S.s;
-  ctx.save();
-  if (flip) {
-    ctx.translate(dx + dw, dy); ctx.scale(-1, 1);
-    ctx.drawImage(image, sourceX, 0, CAT_FRAME.width, CAT_FRAME.height, 0, 0, dw, dh);
-  } else ctx.drawImage(image, sourceX, 0, CAT_FRAME.width, CAT_FRAME.height, dx, dy, dw, dh);
-  ctx.restore();
-  return true;
-}
 function drawHero(ctx, frameName, S, x, y) {
-  const behavior = frameName === 'walk0' || frameName === 'walk1' ? 'walk'
-    : ['curl', 'shrug', 'cheer'].includes(frameName) ? frameName : 'idle';
-  if (drawCat(ctx, S.t || 0, S, behavior, x, y)) return;
   if (H32 && H32.frames[frameName]) {
     const n = H32.size || H32.frames[frameName].length;
     if (n > 48) {
@@ -526,15 +493,13 @@ function mount(canvas, chart, opts = {}) {
   canvas.width = W * s; canvas.height = H * s;
   const ctx = canvas.getContext('2d');
   ctx.imageSmoothingEnabled = false;
-  const S = { chart, s, W, H, pal: palOf(chart.dayMaster.wuXing),
-    catSprites: loadCatSprites(opts.catSprites || (typeof window !== 'undefined' ? window.CAT_SPRITES : null)) };
+  const S = { chart, s, W, H, pal: palOf(chart.dayMaster.wuXing) };
   const fps = DS.motion.fps || 8;
   let scene = 'self', script = null, t = 0, timer = null;
 
   function frame() {
     ctx.fillStyle = '#0E0B14';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    S.t = t;
     if (script) { drawScript(ctx, t % (script.duration * fps), S, script); }
     else (SCENES[scene] || SCENES.unknown).draw(ctx, t, S);
     t++;

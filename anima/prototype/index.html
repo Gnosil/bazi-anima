@@ -262,7 +262,6 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;heigh
 
 <script>__ENGINE__</script>
 <script>__TOKENS__</script>
-<script>window.CAT_SPRITES=__CAT_SPRITES__;</script>
 <script>__STAGE__</script>
 <script>__DIRECTOR__</script>
 <script>
@@ -481,6 +480,7 @@ function renderFinal(){
     <div class="dim">V1→V6 六层推演 + 成文，约 2–3 分钟 · 生成过程会在上面的画面框直播</div></div>`:'';
   document.querySelectorAll('.block[data-block]').forEach(n=>obs.observe(n));
   const g=$('#genFull'); if(g) g.onclick=genFull;
+  ensureDlLinks();
   buildFlow(); showPara(0,true);
   playBlock('open');
 }
@@ -647,6 +647,47 @@ function buildAnims(chart){
   };
 }
 
+function bookMd(){
+  let md='# 命书 · '+F.chart+'\n\n'+F.who+'\n\n';
+  for(const b of F.blocks){
+    if(b.id==='oneline'){md+='> **'+b.text+'**\n\n';continue}
+    md+='## '+b.title+'\n\n';
+    if(b.text) md+=b.text+'\n\n';
+    if(b.segments) for(const sg of b.segments) md+='### '+sg.age+' · '+sg.pillar+'\n\n'+sg.text+'\n\n';
+  }
+  return md+'---\n\n_'+F.disclaimer+'_\n';
+}
+function bookDoc(){
+  const esc=t=>String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+  const ps=t=>String(t).split('\n\n').map(x=>'<p>'+esc(x)+'</p>').join('');
+  let h='<html xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><title>命书</title>'+
+    '<style>body{font-family:"Songti SC",SimSun,serif;line-height:1.9;max-width:640px;margin:40px auto}'+
+    'h1{font-size:22pt}h2{font-size:15pt;border-bottom:1px solid #999;padding-bottom:4px;margin-top:28px}'+
+    'h3{font-size:12pt;color:#666}p{text-indent:2em;margin:8px 0}'+
+    'blockquote{font-size:14pt;font-weight:bold;border-left:4px solid #c9a227;padding-left:12px;margin:24px 0}'+
+    '.dis{color:#999;font-size:9pt;text-indent:0}</style></head><body>';
+  h+='<h1>命书 · '+esc(F.chart)+'</h1><p style="text-indent:0;color:#666">'+esc(F.who)+'</p>';
+  for(const b of F.blocks){
+    if(b.id==='oneline'){h+='<blockquote>'+esc(b.text)+'</blockquote>';continue}
+    h+='<h2>'+esc(b.title)+'</h2>';
+    if(b.text) h+=ps(b.text);
+    if(b.segments) for(const sg of b.segments) h+='<h3>'+esc(sg.age+' · '+sg.pillar)+'</h3>'+ps(sg.text);
+  }
+  return h+'<hr><p class="dis">'+esc(F.disclaimer)+'</p></body></html>';
+}
+function dlFile(name,content,mime){
+  const bl=new Blob(['\ufeff'+content],{type:mime});
+  const u=URL.createObjectURL(bl);
+  const l=document.createElement('a');l.href=u;l.download=name;l.click();
+  setTimeout(()=>URL.revokeObjectURL(u),5000);
+}
+function ensureDlLinks(){
+  if($('#dlMd')||F.stub)return;
+  const base='命书-'+F.chart.replace(/\s/g,'');
+  const mk=(id,label,fn)=>{const a=document.createElement('span');a.id=id;a.className='dlLink';a.textContent=label;a.onclick=fn;$('.modeBar').appendChild(a)};
+  mk('dlMd','↓ 命书.md',()=>dlFile(base+'.md',bookMd(),'text/markdown;charset=utf-8'));
+  mk('dlDoc','↓ 命书.doc',()=>dlFile(base+'.doc',bookDoc(),'application/msword;charset=utf-8'));
+}
 async function genFull(){
   const btn=$('#genFull'); btn.disabled=true; btn.textContent='推演中…';
   const url=window.BAZI_API.replace(/\/+$/,'')+'/reading';
@@ -687,17 +728,11 @@ async function genFull(){
     CUR_PROCESS=vsteps.map((v,i)=>({version:'V'+(i+1),title:['身强弱·五行','宫位','藏干·坐支','纳音','十神','神煞'][i],
       unlockedDimensions:[],diff:v.diff||[],conflicts:v.conflicts||[]}));
     renderFinal();
+    ensureDlLinks();
     // 归档到服务端（盘+命书+推理过程，失败不影响使用）
     fetch(url.replace(/\/reading$/,'/save'),{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({chart:CHART,blocks:newBlocks.map(({anim,...b})=>b),process:vsteps,model:'deepseek-v4-flash'})})
       .catch(()=>{});
-    // 下载链接
-    if(!$('#dlFinal')){
-      const a=document.createElement('span');a.id='dlFinal';a.className='dlLink';a.textContent='↓ 保存命书';
-      a.onclick=()=>{const bl=new Blob([JSON.stringify(F,null,2)],{type:'application/json'});
-        const u=URL.createObjectURL(bl);const l=document.createElement('a');l.href=u;l.download='mingshu-'+CHART.bazi.replace(/\s/g,'')+'.json';l.click();};
-      $('.modeBar').appendChild(a);
-    }
     $('#capText').textContent='命书生成完毕。往下读，或点画面下方的问框提问。';
   }catch(e){
     alert('第'+(($('#capText').textContent.match(/(\d)\/8/)||[])[1]||'?')+'步失败：'+e.message+'\n可以再点一次按钮重试。');

@@ -6,11 +6,6 @@ const caseDir=process.argv[2]||'../../cases/demo-1998';
 const font=fs.readFileSync(path.join(D,'../assets/zpix-subset.woff2')).toString('base64');
 let hero32=''; const h32=path.join(D,'../assets/hero32.js');
 if(fs.existsSync(h32)) hero32=fs.readFileSync(h32,'utf8');
-const catDir=path.join(D,'../assets/taoist-tabby');
-const catSprites=Object.fromEntries(['idle-sheet.png','hop.png','cast.png','beckon.png'].map(file=>[
-  ({ 'idle-sheet.png':'idleSheet', 'hop.png':'hop', 'cast.png':'cast', 'beckon.png':'beckon' })[file],
-  `data:image/png;base64,${fs.readFileSync(path.join(catDir,file)).toString('base64')}`,
-]));
 
 // —— engine 浏览器 bundle：迷你 require shim ——
 const ENG=['tables','config','geo','solartime','shensha','relations','palaces','paipan'];
@@ -27,7 +22,6 @@ let html=R('index.html')
   .replace('__FONT_URL__',`data:font/woff2;base64,${font}`)
   .replace('__TOKENS__',R('../design-system/tokens.js')+'\n'+hero32)
   .replace('__ENGINE__',engine)
-  .replace('__CAT_SPRITES__',JSON.stringify(catSprites))
   .replace('__STAGE__',R('../stage/stage.js'))
   .replace('__DIRECTOR__',R('../stage/director.js'))
   .replace('__CHART__',R(path.join(caseDir,'chart.json')))
