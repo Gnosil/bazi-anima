@@ -104,10 +104,34 @@ function buildMessages(question, chart, readingDigest, dynLine) {
   ];
 }
 
-/* 从模型返回里抠出 JSON（容忍代码块包裹/前后废话） */
+/* 从模型返回里抠出 JSON（容忍代码块包裹/前后废话/丢闭合符） */
+function repairJSON(cand) {
+  const stack = []; let inStr = false, esc = false;
+  for (let i = 0; i < cand.length; i++) {
+    const c = cand[i];
+    if (inStr) {
+      if (esc) esc = false;
+      else if (c === '\\') esc = true;
+      else if (c === '"') inStr = false;
+    } else if (c === '"') inStr = true;
+    else if (c === '{') stack.push('}');
+    else if (c === '[') stack.push(']');
+    else if (c === '}' || c === ']') stack.pop();
+  }
+  let s = cand;
+  if (esc) s = s.slice(0, -1);
+  if (inStr) s += '"';
+  s = s.replace(/\s+$/, '');
+  if (s.endsWith(':')) s += 'null';
+  else if (s.endsWith(',')) s = s.slice(0, -1);
+  return JSON.parse(s + stack.reverse().join(''));
+}
+
 function extractJSON(text) {
   const m = text.match(/\{[\s\S]*\}/);
   if (m) { try { return JSON.parse(m[0]); } catch (e) { /* fallthrough */ } }
+  const i = text.indexOf('{');
+  if (i >= 0) { try { return repairJSON(text.slice(i)); } catch (e) { /* fallthrough */ } }
   // 预填了 { 的场合：返回是从 "caption 开始的续写
   try { return JSON.parse('{' + text.slice(text.indexOf('"'))); } catch (e) { /* fallthrough */ }
   throw new Error('返回中没有合法 JSON');

@@ -466,22 +466,23 @@ const obs=new IntersectionObserver(es=>{
   if(mode!=='full')return;
   for(const e of es) if(e.isIntersecting&&e.target.dataset.block) playBlock(e.target.dataset.block);
 },{rootMargin:'-40% 0px -40% 0px'});
+function blockHtml(b){
+  if(b.id==='oneline') return `<div class="block"><div class="one">${b.text}</div></div>`;
+  const seen=new Set();
+  let h=`<div class="block" data-block="${b.id}"><h2>${b.title}</h2>`;
+  if(b.text) h+=para(b.text,seen);
+  if(b.segments) h+=b.segments.map(s=>`<div class="seg"><div><span class="age">${s.age}</span><span class="pl">${s.pillar}</span></div>${para(s.text,seen)}</div>`).join('');
+  return h+'</div>';
+}
 function renderFinal(){
   $('#who').textContent=F.who+'　·　真太阳时 '+CHART.time.trueSolarTime;
-  $('#reading').innerHTML=F.blocks.map(b=>{
-    if(b.id==='oneline') return `<div class="block"><div class="one">${b.text}</div></div>`;
-    const seen=new Set();
-    let h=`<div class="block" data-block="${b.id}"><h2>${b.title}</h2>`;
-    if(b.text) h+=para(b.text,seen);
-    if(b.segments) h+=b.segments.map(s=>`<div class="seg"><div><span class="age">${s.age}</span><span class="pl">${s.pillar}</span></div>${para(s.text,seen)}</div>`).join('');
-    return h+'</div>';
-  }).join('');
+  $('#reading').innerHTML=F.blocks.map(blockHtml).join('');
   $('#genArea').innerHTML=(F.stub&&window.BAZI_API)?`<div class="genWrap"><button class="goBtn" id="genFull">生成完整命书</button>
-    <div class="dim">V1→V6 六层推演 + 成文，约 2–3 分钟 · 生成过程会在上面的画面框直播</div></div>`:'';
+    <div class="dim" id="genProg">六层推演后逐章成文 · 写好一章你就能读一章</div></div>`:'';
   document.querySelectorAll('.block[data-block]').forEach(n=>obs.observe(n));
   const g=$('#genFull'); if(g) g.onclick=genFull;
   ensureDlLinks();
-  buildFlow(); showPara(0,true);
+  buildFlow(); if(FLOW.length) showPara(0,true);
   playBlock('open');
 }
 
@@ -555,19 +556,17 @@ const d0=DY.find(x=>2026>=x.startYear&&x.endYear>=2026),l0=d0&&d0.liuNian.find(l
 $('#yInfo').innerHTML=d0?`大运 <span class="hi">${d0.ganZhi}</span>　流年 <span class="hi">${l0?l0.ganZhi:'—'}</span>　${l0?l0.age+' 岁':''}`:'';
 
 /* 对话模式 —— 一段一段讲，正在打字时点一下=立刻显示全段，打完点一下=下一段 */
-function buildFlow(){
-  FLOW=[];
-  F.blocks.forEach(b=>{
-    const paras=[];
-    if(b.text) b.text.split('\n\n').forEach(t=>paras.push({t}));
-    if(b.segments) b.segments.forEach(sg=>sg.text.split('\n\n').forEach((t,i)=>paras.push({t,kick:i===0?sg.age+'　'+sg.pillar:null})));
-    paras.forEach((p,i)=>FLOW.push({block:b.id,title:b.title,first:i===0,gold:b.id==='oneline',...p}));
-  });
-  fi=0;
+function pushFlow(b){
+  const paras=[];
+  if(b.text) b.text.split('\n\n').forEach(t=>paras.push({t}));
+  if(b.segments) b.segments.forEach(sg=>sg.text.split('\n\n').forEach((t,i)=>paras.push({t,kick:i===0?sg.age+'　'+sg.pillar:null})));
+  paras.forEach((p,i)=>FLOW.push({block:b.id,title:b.title,first:i===0,gold:b.id==='oneline',...p}));
 }
+function buildFlow(){ FLOW=[]; F.blocks.forEach(pushFlow); fi=0; }
 let fi=0,typing=null,mode='dlg';
 const fmt=t=>t.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
 function showPara(i,instant){
+  if(!FLOW.length) return;
   fi=Math.max(0,Math.min(FLOW.length-1,i));
   const f=FLOW[fi];
   $('#dlgTitle').textContent=f.title;
@@ -589,9 +588,10 @@ function showPara(i,instant){
 }
 $('#dlgBox').onclick=()=>{ if(typing){showPara(fi,true)} else if(fi<FLOW.length-1){showPara(fi+1)} };
 function updateNav(){
+  if(!FLOW.length){$('#navPrev').textContent='';$('#navNext').textContent='';return}
   const cur=FLOW[fi]&&FLOW[fi].title, pv=FLOW[fi-1], nx=FLOW[fi+1];
   $('#navPrev').textContent=pv?(pv.title!==cur?'← 上一章·'+pv.title:'← 上一段'):'← 开头';
-  $('#navNext').textContent=nx?(nx.title!==cur?'下一章·'+nx.title+' →':'下一段 →'):'完 ·';
+  $('#navNext').textContent=nx?(nx.title!==cur?'下一章·'+nx.title+' →':'下一段 →'):(GENERATING?'…下一章写作中':'完 ·');
 }
 $('#navPrev').onclick=e=>{e.stopPropagation();showPara(fi-1,true)};
 $('#navNext').onclick=e=>{e.stopPropagation();if(fi<FLOW.length-1)showPara(fi+1)};
@@ -688,55 +688,95 @@ function ensureDlLinks(){
   mk('dlMd','↓ 命书.md',()=>dlFile(base+'.md',bookMd(),'text/markdown;charset=utf-8'));
   mk('dlDoc','↓ 命书.doc',()=>dlFile(base+'.doc',bookDoc(),'application/msword;charset=utf-8'));
 }
+/* 逐章生成：V1→V6 推演后，一章写好立刻能读一章。GEN 记住进度，失败重试从断点续 */
+var GENERATING=false;
+var GEN={prev:null,vsteps:[],diffs:[],blocks:{},anims:null};
+var CH_ORDER=['open','who','family','peers','love','path','money','career','body','oneline'];
+var CH_NAME={open:'开场',who:'你是谁',family:'你的人 · 父母',peers:'你的人 · 同辈',love:'你的人 · 伴侣',
+             path:'你的四段路',money:'钱',career:'事业',body:'身体',oneline:'一句话'};
+function startBook(){
+  if(F.live) return;
+  F={chart:CHART.bazi,who:F.who,disclaimer:'以上为娱乐性质的传统命理解读，不构成任何专业建议。',blocks:[],live:true};
+  CUR_PROCESS=null;
+  $('#reading').innerHTML='';
+  FLOW=[];fi=0;
+  $('#dlgTitle').textContent='命书';
+  $('#dlgKicker').style.display='none';
+  $('#dlgText').innerHTML='<span class="dim">第一章正在写……</span>';
+  $('#dlgProg').textContent='';$('#dlgNext').textContent='';
+  updateNav();
+}
+function addChapter(b){
+  F.blocks.push(b);
+  $('#reading').insertAdjacentHTML('beforeend',blockHtml(b));
+  const node=$('#reading').lastElementChild;
+  if(node&&node.dataset.block) obs.observe(node);
+  pushFlow(b);
+  if(F.blocks.length===1){ showPara(0,true); }
+  else { $('#dlgProg').textContent=(fi+1)+' / '+FLOW.length; updateNav(); }
+  if(b.anim){ try{ playScript(b.anim,'api'); }catch(e){} }
+}
 async function genFull(){
-  const btn=$('#genFull'); btn.disabled=true; btn.textContent='推演中…';
+  const btn=$('#genFull'); if(btn){btn.disabled=true;btn.textContent='推演中…';}
   const url=window.BAZI_API.replace(/\/+$/,'')+'/reading';
   const CHART=DCTX.chart;
-  const stepScene={V1:'self',V2:'family',V3:'love',V4:'self',V5:'peers',V6:'future',voiceA:'express',voiceB:'career'};
-  const stepName={V1:'V1 身强弱·五行',V2:'V2 宫位',V3:'V3 藏干·坐支',V4:'V4 纳音',V5:'V5 十神',V6:'V6 神煞',voiceA:'成文 · 上半',voiceB:'成文 · 下半'};
+  const prog=t=>{const p=$('#genProg');if(p)p.textContent=t;if(btn)btn.textContent=t;};
+  const stepScene={V1:'self',V2:'family',V3:'love',V4:'self',V5:'peers',V6:'future'};
+  const stepName={V1:'V1 身强弱·五行',V2:'V2 宫位',V3:'V3 藏干·坐支',V4:'V4 纳音',V5:'V5 十神',V6:'V6 神煞'};
   const post=async b=>{
     const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)});
     const j=await r.json();
     if(!r.ok||j.error) throw new Error(j.error||('HTTP '+r.status));
     return j;
   };
+  GENERATING=true;
+  let at='';
   try{
-    let prev=null; const vsteps=[],diffs=[];
-    const order=['V1','V2','V3','V4','V5','V6','voiceA','voiceB'];
-    const blocks={};
-    for(let i=0;i<order.length;i++){
-      const st=order[i];
-      stage.play(stepScene[st]);
-      $('#capText').textContent='推演中 '+(i+1)+'/8 · '+stepName[st]+'……';
-      $('#capVia').textContent='';
-      btn.textContent='推演中 '+(i+1)+'/8';
-      const body=/^V/.test(st)?{step:st,chart:CHART,prev}:{step:st,chart:CHART,r6:prev,diffs:diffs.slice(0,14)};
-      const j=await post(body);
-      if(/^V/.test(st)){
-        prev=j.result.reading; vsteps.push(j.result); window.LAST_R6=prev;
-        for(const d of (j.result.diff||[])) diffs.push({v:st,...d});
-      } else for(const b of j.result.blocks) blocks[b.id]=b;
+    /* 一、六层推演（断点续：已有 r6 就跳过） */
+    for(let k=GEN.vsteps.length+1;k<=6&&!GEN.prev6;k++){
+      at=stepName['V'+k];
+      stage.play(stepScene['V'+k]);
+      $('#capText').textContent='推演中 '+k+'/6 · '+at+'……';$('#capVia').textContent='';
+      prog('推演 '+k+'/6 · '+at);
+      const j=await post({step:'V'+k,chart:CHART,prev:GEN.prev});
+      GEN.prev=j.result.reading; GEN.vsteps.push(j.result); window.LAST_R6=GEN.prev;
+      for(const d of (j.result.diff||[])) GEN.diffs.push({v:'V'+k,...d});
     }
-    const anims=buildAnims(CHART);
-    const ORDER=['open','who','family','peers','love','path','money','career','body','oneline'];
-    const newBlocks=ORDER.filter(id=>blocks[id]).map(id=>{
-      const b=blocks[id], anim=anims[id];
-      if(anim){anim.caption=b.caption||(b.text||'').split('\n')[0].slice(0,48);}
-      return {...b,anim};
-    });
-    F={chart:CHART.bazi,who:F.who,disclaimer:'以上为娱乐性质的传统命理解读，不构成任何专业建议。',blocks:newBlocks};
-    CUR_PROCESS=vsteps.map((v,i)=>({version:'V'+(i+1),title:['身强弱·五行','宫位','藏干·坐支','纳音','十神','神煞'][i],
+    if(GEN.vsteps.length>=6) GEN.prev6=true;
+    /* 二、逐章成文，写好一章立刻上屏 */
+    if(!GEN.anims) GEN.anims=buildAnims(CHART);
+    startBook();
+    for(const id of CH_ORDER){
+      if(GEN.blocks[id]) continue;
+      const n=CH_ORDER.indexOf(id)+1;
+      at='「'+CH_NAME[id]+'」';
+      $('#capVia').textContent='· 写'+at+' '+n+'/10';
+      prog('写'+at+' '+n+'/10 · 写好的章节已经可以读了');
+      const done=CH_ORDER.filter(x=>GEN.blocks[x]).map(x=>CH_NAME[x]);
+      const j=await post({step:'voiceOne',block:id,chart:CHART,r6:GEN.prev,diffs:GEN.diffs.slice(0,10),prevTitles:done});
+      const b=j.result, anim=GEN.anims[id];
+      if(anim) anim.caption=b.caption||(b.text||'').split('\n')[0].slice(0,48);
+      GEN.blocks[id]={...b,anim};
+      addChapter(GEN.blocks[id]);
+    }
+    GENERATING=false;
+    CUR_PROCESS=GEN.vsteps.map((v,i)=>({version:'V'+(i+1),title:['身强弱·五行','宫位','藏干·坐支','纳音','十神','神煞'][i],
       unlockedDimensions:[],diff:v.diff||[],conflicts:v.conflicts||[]}));
-    renderFinal();
+    $('#genArea').innerHTML='';
     ensureDlLinks();
-    // 归档到服务端（盘+命书+推理过程，失败不影响使用）
+    updateNav();
+    /* 归档到服务端（盘+命书+推理过程，失败不影响使用） */
     fetch(url.replace(/\/reading$/,'/save'),{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({chart:CHART,blocks:newBlocks.map(({anim,...b})=>b),process:vsteps,model:'deepseek-v4-flash'})})
+      body:JSON.stringify({chart:CHART,blocks:F.blocks.map(({anim,...b})=>b),process:GEN.vsteps,model:'deepseek-v4-flash'})})
       .catch(()=>{});
-    $('#capText').textContent='命书生成完毕。往下读，或点画面下方的问框提问。';
+    $('#capText').textContent='命书写完了。往下读，或点画面下方的问框提问。';$('#capVia').textContent='';
   }catch(e){
-    alert('第'+(($('#capText').textContent.match(/(\d)\/8/)||[])[1]||'?')+'步失败：'+e.message+'\n可以再点一次按钮重试。');
-    btn.disabled=false;btn.textContent='生成完整命书（重试）';
+    GENERATING=false;
+    $('#capText').textContent=(at||'生成')+'这步失败了：'+e.message;
+    $('#capVia').textContent='';
+    const p=$('#genProg'); if(p)p.textContent='进度已存，点按钮从中断处继续';
+    if(btn){btn.disabled=false;btn.textContent='接着写（已完成的不会重来）';}
+    updateNav();
   }
 }
 } /* end initReading */

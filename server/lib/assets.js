@@ -89,9 +89,33 @@ async function llm(env, messages, maxTokens) {
   return (data.content || []).map(c => c.text || '').join('');
 }
 
+function repairJSON(cand) {
+  const stack = []; let inStr = false, esc = false;
+  for (let i = 0; i < cand.length; i++) {
+    const c = cand[i];
+    if (inStr) {
+      if (esc) esc = false;
+      else if (c === '\\') esc = true;
+      else if (c === '"') inStr = false;
+    } else if (c === '"') inStr = true;
+    else if (c === '{') stack.push('}');
+    else if (c === '[') stack.push(']');
+    else if (c === '}' || c === ']') stack.pop();
+  }
+  let s = cand;
+  if (esc) s = s.slice(0, -1);
+  if (inStr) s += '"';
+  s = s.replace(/\s+$/, '');
+  if (s.endsWith(':')) s += 'null';
+  else if (s.endsWith(',')) s = s.slice(0, -1);
+  return JSON.parse(s + stack.reverse().join(''));
+}
+
 function extractJSON(text) {
   const m = text.match(/\{[\s\S]*\}/);
   if (m) { try { return JSON.parse(m[0]); } catch (e) { /* */ } }
+  const i = text.indexOf('{');
+  if (i >= 0) { try { return repairJSON(text.slice(i)); } catch (e) { /* */ } }
   throw new Error('无合法 JSON');
 }
 

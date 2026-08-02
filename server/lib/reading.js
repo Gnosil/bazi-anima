@@ -113,9 +113,34 @@ function voicePrompt(part, chart, r6, diffs) {
 }
 
 /* ── 通用调用（few-shot + 重试）── */
+/* 括号配平修复：模型常在 end_turn 时丢最后一两个闭合符，或 max_tokens 截在字符串中间 */
+function repairJSON(cand) {
+  const stack = []; let inStr = false, esc = false;
+  for (let i = 0; i < cand.length; i++) {
+    const c = cand[i];
+    if (inStr) {
+      if (esc) esc = false;
+      else if (c === '\\') esc = true;
+      else if (c === '"') inStr = false;
+    } else if (c === '"') inStr = true;
+    else if (c === '{') stack.push('}');
+    else if (c === '[') stack.push(']');
+    else if (c === '}' || c === ']') stack.pop();
+  }
+  let s = cand;
+  if (esc) s = s.slice(0, -1);
+  if (inStr) s += '"';
+  s = s.replace(/\s+$/, '');
+  if (s.endsWith(':')) s += 'null';
+  else if (s.endsWith(',')) s = s.slice(0, -1);
+  return JSON.parse(s + stack.reverse().join(''));
+}
+
 function extractJSON(text) {
   const m = text.match(/\{[\s\S]*\}/);
   if (m) { try { return JSON.parse(m[0]); } catch (e) { /* */ } }
+  const i = text.indexOf('{');
+  if (i >= 0) { try { return repairJSON(text.slice(i)); } catch (e) { /* */ } }
   try { return JSON.parse('{' + text.slice(text.indexOf('"'))); } catch (e) { /* */ }
   throw new Error('返回中没有合法 JSON');
 }
@@ -201,6 +226,58 @@ async function runStep(body, env, fetchFn) {
     const r = await callWithRetry(base, vValidate, env, 2400, fetchFn);
     r.out.version = step;
     return { step, result: r.out, usage: r.usage, retried: r.retried };
+  }
+
+  if (step === 'voiceOne') {
+    if (!body.r6) throw new Error('voiceOne 需要 r6');
+    const id = body.block;
+    const SPECS = {
+      open:   { title: '开场',        extra: '开场直接切这张盘最扎眼的一点，不铺垫、不自我介绍。' },
+      who:    { title: '你是谁',      extra: '性格+底层驱动，约 300 字，这是全书最需要「准」的一章。' },
+      family: { title: '你的人 · 父母', extra: '' },
+      peers:  { title: '你的人 · 同辈', extra: '' },
+      love:   { title: '你的人 · 伴侣', extra: '全书最需要上心处如实说，但只说模式不说结局。' },
+      path:   { title: '你的四段路',   extra: '输出 segments 数组共4段，顺序年月日时，必须用提供的真实年龄和干支。' },
+      money:  { title: '钱',          extra: '' },
+      career: { title: '事业',        extra: '' },
+      body:   { title: '身体',        extra: '结尾提醒身体不适去看医生。' },
+      oneline:{ title: '一句话',      extra: '只输出一句能记一年的话，不要 caption。' },
+    };
+    if (!SPECS[id]) throw new Error('未知 block: ' + id);
+    const g = (chart.input && chart.input.gender) === 'female' ? '女' : '男';
+    const fmt = id === 'path'
+      ? '{"id":"path","title":"你的四段路","segments":[{"age":"x-y 岁","pillar":"年柱 干支 · 纳音","text":"..."},共4段],"caption":"≤50字"}'
+      : id === 'oneline'
+        ? '{"id":"oneline","title":"一句话","text":"一句话"}'
+        : '{"id":"' + id + '","title":"' + SPECS[id].title + '","text":"200-400字，段落用\\n\\n分隔","caption":"≤50字"}';
+    const ages = Object.values(chart.palaces.byPillar).map(v =>
+      v.label + '柱 ' + v.ganZhi + '(' + (chart.pillars[{ '年':'year','月':'month','日':'day','时':'hour' }[v.label]].naYin) + ') ' + v.ageFrom + '-' + (v.ageTo || '终') + '岁');
+    const base = [{ role: 'user', content:
+      VOICE_RULES +
+      '\n\n命主：' + g + '命，八字 ' + chart.bazi + '，日主' + chart.dayMaster.gan + chart.dayMaster.wuXing +
+      '。称呼配偶用「' + (g === '女' ? '他' : '她') + '」。' +
+      '\n\n现在只写一章：「' + SPECS[id].title + '」。' + SPECS[id].extra +
+      '\n输出格式（只输出这一个 JSON 对象）：' + fmt +
+      (SCENE_HINTS[id] ? '\n这一章的画面（caption 指着它说）：' + SCENE_HINTS[id] : '') +
+      (id === 'path' ? '\n四段路真实数据：' + ages.join('；') : '') +
+      (body.prevTitles && body.prevTitles.length ? '\n已写完的章节（不要重复其内容）：' + body.prevTitles.join('、') : '') +
+      '\n\n结构化结论（V6 定稿，唯一事实来源）：' + JSON.stringify(body.r6) +
+      '\n关键改写（可用"看着像X其实是Y"呈现）：' + JSON.stringify((body.diffs || []).slice(0, 10)) +
+      '\n输出 JSON：' }];
+    const validate = o => {
+      if (o.id !== id) o.id = id;
+      if (!o.title) o.title = SPECS[id].title;
+      if (id === 'path') {
+        if (!Array.isArray(o.segments) || o.segments.length !== 4) throw new Error('segments 必须4段');
+      } else if (typeof o.text !== 'string' || !o.text) throw new Error('text 缺失');
+      if (id !== 'oneline') {
+        if (typeof o.caption !== 'string' || !o.caption) throw new Error('caption 缺失');
+        if ([...o.caption].length > 60) o.caption = [...o.caption].slice(0, 58).join('') + '…';
+      }
+      return o;
+    };
+    const r = await callWithRetry(base, validate, env, id === 'path' ? 1600 : 1100, fetchFn);
+    return { step, block: id, result: r.out, usage: r.usage, retried: r.retried };
   }
 
   if (step === 'yun') {
